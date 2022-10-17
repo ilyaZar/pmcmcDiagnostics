@@ -1,0 +1,40 @@
+- the tests in tests-own need to be made comformable to testthat-type tests
+
+- the Warnings under R CMD check:
+  > checking compiled code ... WARNING
+  File ‘pmcmcDiagnostics/libs/pmcmcDiagnostics.so’:
+    Found ‘__assert_fail’, possibly from ‘assert’ (C)
+      Objects: ‘lppd.o’, ‘lppd_dic_waic_cpp_core.o’, ‘pred_den.o’,
+        ‘pred_den_2.o’
+  
+  Compiled code should not call entry points which might terminate R nor
+  write to stdout/stderr instead of to the console, nor use Fortran I/O
+  nor system RNGs.
+  
+  See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.
+
+    This is difficult to solve. Check out the code for pred_den_warnings which is 
+    similar to pred_den but DOES COMPILE WITHOUT WARNING! The key line is 29 which
+    does: 
+    sum_exp_x += x2[d]; 
+    commenting out: no warning!
+    commenting in: warning! so start here, deactivating all compiled code except for
+    pred_den_warnings.cpp and find out where the entry point of dynamically loaded 
+    code is and why this is a problem. In particular, read 
+    
+    See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.
+
+    as suggested by the Warning message and is a good starting point before googling more!
+
+    Also note that the waic_core() and dic_core() functions do not have problems as 
+    they do not depend on the pred_den()! So the problem is really connected somehow to
+    pred_den() and propagated further: lppd.cpp uses pred_den() inside lppd_core(), so
+    lppd.o is contained in the warning message: same goes for the other files and functions:
+    lppd_dic_waic.cpp and pred_den_2.cpp that both use pred_den() and hence their .o-files
+    are referred to in the warning message!
+
+- check if you can eliminate mp::lgamma by lgamma or otherwise get rid of the annoying 
+  namespace error message! It seems lgamma is really not in boost/multiprecision/mpfr.hpp
+  because it actually compiles with lgamma directly instead of mp::lgamma! Write a test
+  to confirm that the operations really lead to identical results! Check for 22 significant
+  digits!
