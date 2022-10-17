@@ -22,10 +22,10 @@ pgas_out_2_diagnostics(
 \item{pgas_out}{output from  \code{pgas_cpp()} or \code{pgas_R()}: a list of
 four elements:
 \itemize{
-\item{\code{sig_sq_xa:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-standard deviation values
-\item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-autoregressive parameter values
+\item{\code{sig_sq_xa:}}{matrix of dimension DD x num_mncmc_draws} of
+simulated standard deviation values
+\item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of
+simulated autoregressive parameter values
 \item{\code{bet_xa}}{matrix of dimension num_par_beta x num_mncmc_draws}
 of simulated regressor coefficient values in the order they appera in the
 latent state transition equation from d=1,...,DD
@@ -56,13 +56,14 @@ the energy types}
 \value{
 a list of 6 elements:
 \itemize{
-\item{\code{$mcmc_sims:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-standard deviation values
-\item{\code{$states:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-autoregressive parameter values
-\item{\code{$par_names}}{matrix of dimension num_par_beta x num_mncmc_draws}
-of simulated regressor coefficient values in the order they appera in the
-latent state transition equation from d=1,...,DD
+\item{\code{$mcmc_sims:}}{matrix of dimension DD x num_mncmc_draws} of
+simulated standard deviation values
+\item{\code{$states:}}{matrix of dimension DD x num_mncmc_draws} of
+simulated autoregressive parameter values
+\item{\code{$par_names}}{matrix of dimension \code{num_par_beta x}
+\code{ num_mncmc_draws} of simulated regressor coefficient values in the
+order they appear in the latent state transition equation from
+d=1,...,DD}
 }
 }
 \description{

@@ -54,24 +54,27 @@ diagnostics_table <- function(num_par,
     # chains do not have finite mean or variance.
     #
     # The ess_tail function produces an estimated Tail Effective Sample Size
-    # (tail-ESS) by computing the minimum of effective sample sizes for 5% and 95%
-    # quantiles. Tail-ESS is useful measure for sampling efficiency in the tails
-    # of the distribution (related e.g. to efficiency of variance and tail
+    # (tail-ESS) by computing the minimum of effective sample sizes for 5% and
+    # 95% quantiles. Tail-ESS is useful measure for sampling efficiency in the
+    # tails of the distribution (related e.g. to efficiency of variance and tail
     # quantile estimates).
     #
-    # Both bulk-ESS and tail-ESS should be at least 100 (approximately) per Markov
-    # Chain in order to be reliable and indicate that estimates of respective
-    # posterior quantiles are reliable.
+    # Both bulk-ESS and tail-ESS should be at least 100 (approximately) per
+    # Markov Chain in order to be reliable and indicate that estimates of
+    # respective posterior quantiles are reliable.
   }
   mcmc_sims_coda <- coda::mcmc(mcmc_sims, start = burn, end = num_mcmc)
   hpd_interval1  <- unname(coda::HPDinterval(mcmc_sims_coda, prob = ki_prob))
-  hpd_interval2  <- t(HDInterval::hdi(mcmc_sims_after, credMass = ki_prob, allowSplit = TRUE))
+  hpd_interval2  <- t(HDInterval::hdi(mcmc_sims_after,
+                                      credMass = ki_prob,
+                                      allowSplit = TRUE))
   min_hpd <- cbind(HPD1 = hpd_interval1[, 2] - hpd_interval1[, 1],
                    HPD2 = hpd_interval2[, 2] - hpd_interval2[, 1])
   min_hpd <- apply(min_hpd, 1, which.min)
   ess <- numeric(num_par)
   for (i in 1:num_par) {
-    val <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]), error = function(err) NA_real_)
+    val <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
+                    error = function(err) NA_real_)
     ess[i] <- val
   }
   for (i in 1:num_par) {
@@ -95,11 +98,15 @@ diagnostics_table <- function(num_par,
       summary_results[i, 9] <- round(ess[i], digits = 0)
     }
     if (compute_ess_stan && compute_ess) {
-      summary_results[i, 10] <- round(rstan::ess_bulk(mcmc_sims_after[, i]), digits = 0)
-      summary_results[i, 11] <- round(rstan::ess_tail(mcmc_sims_after[, i]), digits = 0)
+      summary_results[i, 10] <- round(rstan::ess_bulk(mcmc_sims_after[, i]),
+                                      digits = 0)
+      summary_results[i, 11] <- round(rstan::ess_tail(mcmc_sims_after[, i]),
+                                      digits = 0)
     } else if (compute_ess_stan && !compute_ess) {
-      summary_results[i, 9] <- round(rstan::ess_bulk(mcmc_sims_after[, i]), digits = 0)
-      summary_results[i, 10] <- round(rstan::ess_tail(mcmc_sims_after[, i]), digits = 0)
+      summary_results[i, 9] <- round(rstan::ess_bulk(mcmc_sims_after[, i]),
+                                     digits = 0)
+      summary_results[i, 10] <- round(rstan::ess_tail(mcmc_sims_after[, i]),
+                                      digits = 0)
     }
   }
   verify_KIs <- cbind(KI  = summary_results[, 6] - summary_results[, 5],
@@ -124,7 +131,7 @@ diagnostics_table <- function(num_par,
     num_add_rest <- ncol(summary_results) + 3 - ncol(summary_results_true)
     if (num_add_rest != 0) {
       summary_results_true <- cbind(summary_results_true,
-                                    summary_results[, (8 + 1):(8 + num_add_rest),
+                                    summary_results[, (8 + 1):(8+num_add_rest),
                                                     drop = FALSE])
     }
     return(summary_results_true)
@@ -133,12 +140,14 @@ diagnostics_table <- function(num_par,
                         sign(summary_results[, 6, drop = TRUE]))
     significant_hpd <-  (sign(summary_results[, 7, drop = TRUE]) ==
                          sign(summary_results[, 8, drop = TRUE]))
-    summary_results_significant <- cbind(summary_results[, 1:6], significant_KI,
-                                         summary_results[, 7:8], significant_hpd)
-    num_add_rest <- ncol(summary_results) + 2 - ncol(summary_results_significant)
+    summary_results_significant <- cbind(summary_results[, 1:6],
+                                         significant_KI,
+                                         summary_results[, 7:8],
+                                         significant_hpd)
+    num_add_rest <- ncol(summary_results) + 2 -ncol(summary_results_significant)
     if (num_add_rest != 0) {
       summary_results_significant <- cbind(summary_results_significant,
-                                    summary_results[, (8 + 1):(8 + num_add_rest),
+                                    summary_results[, (8 + 1):(8 +num_add_rest),
                                                     drop = FALSE])
     }
     return(summary_results_significant)

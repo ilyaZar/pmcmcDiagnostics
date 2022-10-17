@@ -45,7 +45,8 @@ analyse_states_ur <- function(trajectories,
   for (n in 1:NN) {
     urs_per_n <- matrix(0, nrow = num_states, ncol = num_comps)
     for (d in 1:num_comps) {
-      num_unique_states <- apply(trajectories[ ,d , ,n], MARGIN = 1, unique)#apply(trajectories[ ,d , ,n], MARGIN = 2, unique)
+      num_unique_states <- apply(trajectories[ ,d , ,n], MARGIN = 1, unique)
+      #apply(trajectories[ ,d , ,n], MARGIN = 2, unique)
       num_unique_states <- unlist(lapply(num_unique_states, length))
       urs_per_n[, d] <- num_unique_states/num_draws
     }

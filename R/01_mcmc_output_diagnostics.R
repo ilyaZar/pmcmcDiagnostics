@@ -87,7 +87,8 @@ analyse_mcmc_convergence2 <- function(mcmc_sims, states,
   num_par         <- dim(mcmc_sims)[2]
 
   if (num_mcmc - burn < 1) {
-    stop("Burn-in period too large: the number of (P)MCMC samples is: ", num_mcmc, " while burn-in is: ", burn, "!")
+    stop("Burn-in period too large: the number of (P)MCMC samples is: ",
+         num_mcmc, " while burn-in is: ", burn, "!")
   }
 
   mcmc_sims_after <- burn_and_thin(mcmc_sims, burnin = burn, thin)
@@ -107,7 +108,7 @@ analyse_mcmc_convergence2 <- function(mcmc_sims, states,
     for (i in 1:num_par) {
       if (plot_ggp2) {
         plot_returned <- generate_ggplot2(mcmc_sims_df = mcmc_sims_df,
-                                          mcmc_sims_df_after = mcmc_sims_df_after,
+                                          mcmc_sims_df_after=mcmc_sims_df_after,
                                           burn = burn,
                                           thin = thin,
                                           num_mcmc = num_mcmc,
@@ -218,7 +219,9 @@ analyse_mcmc_convergence2 <- function(mcmc_sims, states,
     summary_results_save <- cbind(lab_names, summary_results_save)
     # row.names(summary_results_save) <- par_names
     # summary_results_save <- cbind(par_name = par_names, summary_results_save)
-    readr::write_csv(summary_results_save, path = file.path(table_path, paste0(table_name, ".csv")))
+    readr::write_csv(summary_results_save, path = file.path(table_path,
+                                                            paste0(table_name,
+                                                                   ".csv")))
   }
   #
   #

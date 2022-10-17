@@ -5,10 +5,10 @@
 #' @param pgas_out output from  \code{pgas_cpp()} or \code{pgas_R()}: a list of
 #'   four elements:
 #'   \itemize{
-#'     \item{\code{sig_sq_xa:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-#'     standard deviation values
-#'     \item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-#'     autoregressive parameter values
+#'     \item{\code{sig_sq_xa:}}{matrix of dimension DD x num_mncmc_draws} of
+#'     simulated standard deviation values
+#'     \item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of
+#'     simulated autoregressive parameter values
 #'     \item{\code{bet_xa}}{matrix of dimension num_par_beta x num_mncmc_draws}
 #'     of simulated regressor coefficient values in the order they appera in the
 #'     latent state transition equation from d=1,...,DD
@@ -30,13 +30,14 @@
 #'
 #' @return a list of 6 elements:
 #' \itemize{
-#'     \item{\code{$mcmc_sims:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-#'     standard deviation values
-#'     \item{\code{$states:}}{matrix of dimension DD x num_mncmc_draws} of simulated
-#'     autoregressive parameter values
-#'     \item{\code{$par_names}}{matrix of dimension num_par_beta x num_mncmc_draws}
-#'     of simulated regressor coefficient values in the order they appera in the
-#'     latent state transition equation from d=1,...,DD
+#'     \item{\code{$mcmc_sims:}}{matrix of dimension DD x num_mncmc_draws} of
+#'     simulated standard deviation values
+#'     \item{\code{$states:}}{matrix of dimension DD x num_mncmc_draws} of
+#'     simulated autoregressive parameter values
+#'     \item{\code{$par_names}}{matrix of dimension \code{num_par_beta x}
+#'     \code{ num_mncmc_draws} of simulated regressor coefficient values in the
+#'     order they appear in the latent state transition equation from
+#'     d=1,...,DD}
 #'   }
 #'
 #' @export
@@ -98,7 +99,8 @@ pgas_out_2_diagnostics <- function(pgas_out, par_inits,
       }
     }
   } else {
-    stop("Assignment of parameter names, labels etc is not working; check internal code.")
+    stop(paste0("Assignment of parameter names, ",
+                "labels etc is not working; check internal code."))
   }
   # browser()
   num_pars  <- 2*DD + sum(bet_z_dim) + sum(bet_u_dim) * NN
@@ -161,7 +163,9 @@ pgas_out_2_diagnostics <- function(pgas_out, par_inits,
   out$lab_names       <- lab_names_all
   if (!Unull) {
     out$start_vals      <- unname(c(unlist(par_inits[1:3]),
-                                    as.vector(Reduce(function(x, y) {return(rbind(x,y))}, par_inits[[4]]))))
+                                    as.vector(Reduce(function(x, y) {
+                                      return(rbind(x,y))},
+                                      par_inits[[4]]))))
   } else {
     out$start_vals      <- unname(c(unlist(par_inits[1:3])))
   }
@@ -212,24 +216,9 @@ pgas_out_2_list <- function(pgas_out, DD, NN, TT, MM, dim_bet_z, cpp = NULL) {
     }
   }
   out[[19]] <- xtraj
-  names(out) <- c("sigma_sq_xa1",
-                  "phi_xa1",
-                  "bet_xa1",
-                  "sigma_sq_xa2",
-                  "phi_xa2",
-                  "bet_xa2",
-                  "sigma_sq_xa3",
-                  "phi_xa3",
-                  "bet_xa3",
-                  "sigma_sq_xa4",
-                  "phi_xa4",
-                  "bet_xa4",
-                  "sigma_sq_xa5",
-                  "phi_xa5",
-                  "bet_xa5",
-                  "sigma_sq_xa6",
-                  "phi_xa6",
-                  "bet_xa6",
-                  "xtraj")
+
+  names(out) <-  paste0(c("sigma_sq_xa",
+                          "phi_xa",
+                          "bet_xa"), 1:DD)
   return(out)
 }
