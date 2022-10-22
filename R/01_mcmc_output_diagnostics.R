@@ -51,7 +51,7 @@
 #' @param compute_ess_stan logical; if \code{TRUE}, computes the effective
 #'   sample sizes in terms of ESS bulk and ESS tail (see the function
 #'   documentation of \code{diagnostics_table()} for details)
-#' @param ur_view logical; if \code{TRUE} are returned for viewing (RStuido
+#' @param ur_view logical; if \code{TRUE} are returned for viewing (RStudio
 #'   pane)
 #' @param ur_save logical; if \code{TRUE} update rates are saved
 #' @param ur_name if \code{ur_save == TRUE}, specifies name of the update rate
