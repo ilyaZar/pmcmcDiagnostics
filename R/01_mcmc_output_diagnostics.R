@@ -83,6 +83,8 @@ analyse_mcmc_convergence2 <- function(mcmc_sims, states,
                                       ur_save = FALSE,
                                       ur_name = "",
                                       ur_path = NULL) {
+  summary_results_view <- NULL
+  browser()
   num_mcmc        <- dim(mcmc_sims)[1]
   num_par         <- dim(mcmc_sims)[2]
 
@@ -240,9 +242,10 @@ analyse_mcmc_convergence2 <- function(mcmc_sims, states,
     grDevices::dev.off()
     print(paste("Saved update rate plot in: ", current_plot_name))
   }
-  if (table_view) {
+  if (!is.null(summary_results_view)) {
     return(summary_results_view)
   } else {
+    warning("No summary results computed, nothing to return ...")
     return(invisible(summary_results_view))
   }
 }
