@@ -10,19 +10,19 @@
 #'     \item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of
 #'     simulated autoregressive parameter values
 #'     \item{\code{bet_xa}}{matrix of dimension num_par_beta x num_mncmc_draws}
-#'     of simulated regressor coefficient values in the order they appera in the
+#'     of simulated regressor coefficient values in the order they appear in the
 #'     latent state transition equation from d=1,...,DD
 #'   }
-#' @param par_inits list of initializaiton values for parameter s
+#' @param par_inits list of initialization values for parameter s
 #' @param par_names list of 3: first component is the name for sigma_squared and
 #'   phi, the second component is a list of regressor names for Z-type
 #'   regressors, and the last is for U-type regressors
 #' @param par_trues if a simulation study, then one can provide true parameter
 #'   values; the input argument should have the same structure as the argument
 #'   \code{par_inits}
-#' @param state_names character vector of dimension NN gving the names of
+#' @param state_names character vector of dimension NN giving the names of
 #'   the US states
-#' @param energy_type_names character vector of dimension DD gving the names of
+#' @param energy_type_names character vector of dimension DD giving the names of
 #'   the energy types
 #' @param NN number of cross sectional units
 #' @param TT number of time periods

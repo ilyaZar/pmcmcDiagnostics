@@ -33,6 +33,7 @@ diagnostics_table <- function(num_par,
                               ki_prob,
                               compute_ess = TRUE,
                               compute_ess_stan = TRUE) {
+  browser()
   summary_results <- data.frame(start_val = numeric(num_par),
                                 mean = numeric(num_par),
                                 sd = numeric(num_par),
@@ -114,6 +115,7 @@ diagnostics_table <- function(num_par,
   check_hpd          <- apply(verify_KIs, 1, which.min)
   id_check_phd_fails <- which(check_hpd == 1)
   check_hpd          <- unique(check_hpd)
+  browser()
   if (!(length(check_hpd) == 1) || !(check_hpd == 2)) {
     msg1 <- paste0("HPD is not smaller than KI intervall for param. numbers: ")
     msg2 <- paste0(as.character(id_check_phd_fails), collapse = ", ")
