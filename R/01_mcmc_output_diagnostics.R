@@ -100,256 +100,78 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                                           ur_name = "",
                                                           ur_path = NULL)) {
   stopifnot(any(!is.null(model_output) ||
-                  !is.null(mcmc_sims) ||
-                  !is.null(states)))
-  summary_results_view <- NULL
+                  (!is.null(mcmc_sims) &&
+                     !is.null(states))))
+
+
   if (class(model_output) == "pmcmc") {
     states <- model_output$x
   }
   par_names <- unlist(model_meta$par_val_names)
   lab_names <- unlist(model_meta$par_lab_names)
-  mcmc_sims <- model_out2sims(model_output, par_names)
   true_vals <- get_true_vals(list_true_vals = model_output$true_vals)
-  # par_names,
-  # lab_names = NULL,
+
+  mcmc_sims <- model_out2sims(model_output, par_names)
   num_mcmc <- dim(mcmc_sims)[1]
-  num_par  <- dim(mcmc_sims)[2] - 1
-  burn <- settings_mcmc$burn
-  thin <- settings_mcmc$thin
+  num_par  <- dim(mcmc_sims)[2]
 
-  if (num_mcmc - burn < 1) {
+  if (num_mcmc - settings_mcmc$burn < 1) {
     stop("Burn-in period too large: the number of (P)MCMC samples is: ",
-         num_mcmc, " while burn-in is: ", burn, "!")
+         num_mcmc, " while burn-in is: ",
+         settings_mcmc$burn, "!")
   }
+
   start_vals         <- mcmc_sims[1, ]
-  mcmc_sims_after    <- burn_and_thin(mcmc_sims, burnin = burn, thin)
+  mcmc_sims_after    <- burn_and_thin(mcmc_sims,
+                                      burnin = settings_mcmc$burn,
+                                      settings_mcmc$thin)
   mcmc_sims_df       <- data.frame(cbind(num_mcmc = 1:num_mcmc, mcmc_sims))
-  mcmc_sims_df_after <- subset(mcmc_sims_df, num_mcmc >= burn)
-  posterior_means    <- colMeans(mcmc_sims_after[,-1])
-  #
-  #
-  #
-  #
-  #
+  mcmc_sims_df_after <- subset(mcmc_sims_df,
+                               num_mcmc >= settings_mcmc$burn)
+  posterior_means    <- colMeans(mcmc_sims_after)
+
   if (settings_plots$plot_view || settings_plots$plot_save) {
-    for (i in 1:num_par) {
-      if (settings_plots$plot_ggp2) {
-        plot_returned <- generate_ggplot2(mcmc_sims_df = mcmc_sims_df[, -1],
-                                          mcmc_sims_df_after=mcmc_sims_df_after[, -1],
-                                          burn = burn,
-                                          thin = thin,
-                                          num_mcmc = num_mcmc,
-                                          par_names = par_names,
-                                          true_vals = true_vals,
-                                          posterior_means = posterior_means,
-                                          plot_num = i)
-        if (settings_plots$plot_view) {
-          plot_current <- gridExtra::grid.arrange(plot_returned[[1]],
-                                                  plot_returned[[2]],
-                                                  plot_returned[[3]],
-                                                  plot_returned[[4]],
-                                                  nrow = 2,
-                                                  top = grid::textGrob(lab_names[i],
-                                                           gp = grid::gpar(fontsize = 20, font = 3)))
-          print(plot_current)
-        }
-        if (settings_plots$plot_save) {
-          plot_current <- gridExtra::arrangeGrob(plot_returned[[1]],
-                                                 plot_returned[[2]],
-                                                 plot_returned[[3]],
-                                                 plot_returned[[4]],
-                                                 nrow = 2,
-                                                 top = grid::textGrob(lab_names[i],
-                                                                      gp = grid::gpar(fontsize = 20, font = 3)))
-          ggplot2::ggsave(filename = paste(settings_plots$plot_name, "_", par_names[i], ".pdf", sep = ""),
-                          plot = plot_current,
-                          path = settings_plots$plot_path,
-                          device = "eps",
-                          width = 18,
-                          height = 10.5,
-                          units = "cm")
-          current_plot_name <- file.path(settings_plots$plot_path,
-                                         paste(settings_plots$plot_name,"_",
-                                               par_names[i],
-                                               ".pdf",
-                                               sep = ""))
-          print(paste("Saved plots in: ", current_plot_name))
-        }
-      } else {
-        if (settings_plots$plot_view) {
-          plot_returned <- generate_plot2(mcmc_sims = mcmc_sims[, -1],
-                                          mcmc_sims_after = mcmc_sims_after[, -1],
-                                          burn = burn,
-                                          thin = thin,
-                                          num_mcmc = num_mcmc,
-                                          par_names = par_names,
-                                          par_names_plot = lab_names,
-                                          true_vals = true_vals,
-                                          posterior_means = posterior_means,
-                                          plot_num = i)
-        }
-        if (settings_plots$plot_save) {
-          current_plot_name <- file.path(settings_plots$plot_path,
-                                         paste(settings_plots$plot_name, "_",
-                                               par_names[i],
-                                               ".pdf",
-                                               sep = ""))
-          grDevices::setEPS()
-          grDevices::postscript(current_plot_name, width = 18, height = 10.5)
-          generate_plot2(mcmc_sims = mcmc_sims[, -1],
-                         mcmc_sims_after = mcmc_sims_after[, -1],
-                         burn = burn,
-                         num_mcmc = num_mcmc,
-                         par_names = par_names,
-                         par_names_plot = lab_names,
-                         true_vals = true_vals,
-                         posterior_means = posterior_means,
-                         plot_num = i)
-          grDevices::dev.off()
-          print(paste("Saved plots in: ", current_plot_name))
-        }
-      }
-    }
-  }
-  browser()
-  summary_results <- diagnostics_table(num_par = num_par,
-                                       mcmc_sims = mcmc_sims[, -1],
-                                       mcmc_sims_after = mcmc_sims_after[, -1],
-                                       burn = burn,
-                                       num_mcmc = num_mcmc,
-                                       posterior_means = posterior_means,
-                                       start_vals  = start_vals ,
-                                       true_vals = true_vals,
-                                       ki_prob = settings_mcmc$ki_prob,
-                                       compute_ess = settings_mcmc$compute_ess,
-                                       compute_ess_stan = settings_mcmc$compute_ess_stan)
-  if (settings_table$table_view) {
-    summary_results_view <- summary_results
-    ID_round <- which(!sapply(summary_results_view, is.logical))
-    summary_results_view[, ID_round] <- round(summary_results_view[, ID_round],
-                                              digits = settings_table$table_prec)
-    row.names(summary_results_view) <- par_names
-    utils::View(summary_results_view, title = paste(settings_table$table_name,
-                                             "_summary_results",
-                                             sep = ""))
-  }
-  if (settings_table$table_save) {
-    if (is.null(lab_names) || is.null(lab_names)) {
-      stop("Can't save results in table form: label names required!")
-    }
-    summary_results_save <- summary_results
-    summary_results_save <- cbind(lab_names, summary_results_save)
-    # row.names(summary_results_save) <- par_names
-    # summary_results_save <- cbind(par_name = par_names, summary_results_save)
-    readr::write_csv(summary_results_save,
-                     file = file.path(settings_table$table_path,
-                                      paste0(settings_table$table_name,
-                                             ".csv")))
-  }
-  #
-  #
-  #
-  #
-  #
-  if (settings_urs$ur_view) {
-    graphics::par(mfrow = c(1, 1))
-    analyse_states_ur(trajectories = states)
-  }
-  if (settings_urs$ur_save) {
-    current_plot_name <- file.path(settings_plots$plot_path,
-                                   paste0("00_", settings_urs$ur_name, ".pdf"))
-    grDevices::setEPS()
-    grDevices::postscript(current_plot_name, width = 9, height = 5.25)
-    analyse_states_ur(trajectories = states)
-    grDevices::dev.off()
-    print(paste("Saved update rate plot in: ", current_plot_name))
-  }
-  if (!is.null(summary_results_view)) {
-    return(summary_results_view)
-  } else {
-    warning("No summary results computed, nothing to return ...")
-    return(invisible(summary_results_view))
-  }
-}
-model_out2sims <- function(mod_out, par_names) {
-  sig_sq_x  <- mod_out$sig_sq_x
-  phi_x     <- mod_out$phi_x
-  bet_z     <- mod_out$bet_z
-  bet_u     <- mod_out$bet_u
-  vcm_bet_u <- mod_out$vcm_bet_u
-
-
-  if (!is.null(sig_sq_x)) {
-    sig_sq_x <- matrix(sig_sq_x, ncol = 1)
-  }
-  if (!is.null(phi_x)) {
-    phi_x <- matrix(phi_x, ncol = 1)
-  }
-  if (!is.null(bet_z)) {
-    if (!is.na(dim(bet_z)[3])) {
-      bet_z <- matrix(apply(bet_z, 3, t), nrow = nrow(bet_z[,,1]))
+    if (settings_plots$plot_ggp2) {
+      generate_ggplot2_all(mcmc_sims_df, mcmc_sims_df_after,
+                           settings_mcmc$burn,
+                           settings_mcmc$thin,
+                           num_mcmc,
+                           par_names, true_vals,
+                           posterior_means,
+                           settings_plots,
+                           lab_names)
     } else {
-      bet_z <- t(bet_z)
+      generate_plot_all(mcmc_sims, mcmc_sims_after,
+                        settings_mcmc$burn, settings_mcmc$thin,
+                        num_mcmc,
+                        par_names, true_vals,
+                        posterior_means,
+                        settings_plots,
+                        lab_names)
     }
   }
-  if (!is.null(bet_u)) {
-    if (!is.na(dim(bet_u)[3])) {
-      NN     <- dim(bet_u)[3]
-      MM     <- dim(bet_u)[2]
-      num_re <- dim(bet_u)[1]
+  out <- NULL
+  if (settings_table$table_view || settings_table$table_save) {
+    out <- diagnostics_table(num_par = num_par,
+                             par_names = par_names,
+                             mcmc_sims = mcmc_sims,
+                             mcmc_sims_after = mcmc_sims_after,
+                             burn = settings_mcmc$burn,
+                             num_mcmc = num_mcmc,
+                             posterior_means = posterior_means,
+                             start_vals  = start_vals ,
+                             true_vals = true_vals,
+                             ki_prob = settings_mcmc$ki_prob,
+                             compute_ess = settings_mcmc$compute_ess,
+                             compute_ess_stan = settings_mcmc$compute_ess_stan,
+                             settings_table)
+  }
 
-      out <- matrix(0, ncol = num_re*NN, nrow = MM)
-      iter <- 1
-      for (r in 1:num_re) {
-        for (n in 1:NN) {
-          out[, iter] <- as.vector(bet_u[r, , n])
-          iter <- iter + 1
-        }
-      }
+  if (settings_urs$ur_view || settings_urs$ur_save) {
+    get_update_rates(states, settings_urs, settings_plots)
+  }
 
-     bet_u <- out
-    } else {
-      stop("not yet implemented")
-    }
-  }
-  for (d in 1:length(mod_out$vcm_bet_u)) {
-    dim_vcm_bet_u <- nrow(mod_out$vcm_bet_u[[d]])
-    vcm_bet_u_mat <- matrix(0, nrow = dim(mod_out$vcm_bet_u[[1]])[3],
-                            ncol = dim_vcm_bet_u^2)
-    k <- 1
-    for (i in 1:dim_vcm_bet_u) {
-      for (j in 1:dim_vcm_bet_u) {
-        vcm_bet_u_mat[, k] <- mod_out$vcm_bet_u[[1]][i, j, ]
-        k <- k + 1
-      }
-    }
-  }
-  par_list <- list(sig_sq_x, phi_x, bet_z, bet_u, vcm_bet_u_mat)
-  id_bind <- sapply(par_list, is.null)
-  out <- Reduce(cbind,
-                par_list[!id_bind],
-                init =  1:nrow(par_list[!id_bind][[1]]))
-  colnames(out) <- c("sim_mcmc", par_names)
-  return(out)
-}
-get_true_vals <- function(list_true_vals) {
-  names_pars <- names(list_true_vals)
-
-  DD <- nrow(list_true_vals[["sig_sq"]])
-  out <- numeric(0)
-  for(j in names_pars) {
-    for (d in 1:DD) {
-      if (is.null(list_true_vals[[j]])) next;
-      if (j %in% c("sig_sq", "phi")) {
-        out <- c(out, unique(list_true_vals[[j]][d, ]))
-      } else if (j == "beta_z_lin") {
-        out <- c(out, unlist(list_true_vals[[j]][[d]]))
-      } else if (j == "beta_u_lin") {
-        out <- c(out, unlist(t(list_true_vals[[j]][[d]])))
-      } else if (j == "vcm_u_lin") {
-        out <- c(out, unlist(list_true_vals[[j]][[d]]))
-      }
-    }
-  }
+  if (!is.null(out)) warning(paste0("No summary results computed, ",
+                                    "nothing to return ..."))
   return(out)
 }

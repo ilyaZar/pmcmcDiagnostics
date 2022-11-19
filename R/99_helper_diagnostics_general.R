@@ -101,7 +101,6 @@ equal_values <- function(x ,y) {
 #' @return a matrix of (particle) MCMC parameter draws after burnin and thinning
 #' @export
 burn_and_thin <- function(draws, burnin, thin = NULL) {
-  # burnin <- burnin + 1
   burned_interval  <- burnin:nrow(draws)
   mcmc_sims_after  <- draws[burned_interval, ]
   if (!(is.null(thin))) {
@@ -109,4 +108,25 @@ burn_and_thin <- function(draws, burnin, thin = NULL) {
     mcmc_sims_after <- mcmc_sims_after[thinned_interval, ]
   }
   return(mcmc_sims_after)
+}
+get_true_vals <- function(list_true_vals) {
+  names_pars <- names(list_true_vals)
+
+  DD <- nrow(list_true_vals[["sig_sq"]])
+  out <- numeric(0)
+  for(j in names_pars) {
+    for (d in 1:DD) {
+      if (is.null(list_true_vals[[j]])) next;
+      if (j %in% c("sig_sq", "phi")) {
+        out <- c(out, unique(list_true_vals[[j]][d, ]))
+      } else if (j == "beta_z_lin") {
+        out <- c(out, unlist(list_true_vals[[j]][[d]]))
+      } else if (j == "beta_u_lin") {
+        out <- c(out, unlist(t(list_true_vals[[j]][[d]])))
+      } else if (j == "vcm_u_lin") {
+        out <- c(out, unlist(list_true_vals[[j]][[d]]))
+      }
+    }
+  }
+  return(out)
 }

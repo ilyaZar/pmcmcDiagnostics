@@ -1,3 +1,64 @@
+model_out2sims <- function(mod_out, par_names) {
+  sig_sq_x  <- mod_out$sig_sq_x
+  phi_x     <- mod_out$phi_x
+  bet_z     <- mod_out$bet_z
+  bet_u     <- mod_out$bet_u
+  vcm_bet_u <- mod_out$vcm_bet_u
+
+  if (!is.null(sig_sq_x)) {
+    sig_sq_x <- matrix(sig_sq_x, ncol = 1)
+  }
+  if (!is.null(phi_x)) {
+    phi_x <- matrix(phi_x, ncol = 1)
+  }
+  if (!is.null(bet_z)) {
+    if (!is.na(dim(bet_z)[3])) {
+      bet_z <- matrix(apply(bet_z, 3, t), nrow = nrow(bet_z[,,1]))
+    } else {
+      bet_z <- t(bet_z)
+    }
+  }
+  if (!is.null(bet_u)) {
+    if (!is.na(dim(bet_u)[3])) {
+      NN     <- dim(bet_u)[3]
+      MM     <- dim(bet_u)[2]
+      num_re <- dim(bet_u)[1]
+
+      out <- matrix(0, ncol = num_re*NN, nrow = MM)
+      iter <- 1
+      for (r in 1:num_re) {
+        for (n in 1:NN) {
+          out[, iter] <- as.vector(bet_u[r, , n])
+          iter <- iter + 1
+        }
+      }
+
+      bet_u <- out
+    } else {
+      stop("not yet implemented")
+    }
+  }
+  for (d in 1:length(mod_out$vcm_bet_u)) {
+    dim_vcm_bet_u <- nrow(mod_out$vcm_bet_u[[d]])
+    vcm_bet_u_mat <- matrix(0, nrow = dim(mod_out$vcm_bet_u[[1]])[3],
+                            ncol = dim_vcm_bet_u^2)
+    k <- 1
+    for (i in 1:dim_vcm_bet_u) {
+      for (j in 1:dim_vcm_bet_u) {
+        vcm_bet_u_mat[, k] <- mod_out$vcm_bet_u[[1]][i, j, ]
+        k <- k + 1
+      }
+    }
+  }
+  par_list <- list(sig_sq_x, phi_x, bet_z, bet_u, vcm_bet_u_mat)
+  id_bind <- sapply(par_list, is.null)
+  out <- Reduce(cbind,
+                par_list[!id_bind],
+                init =  1:nrow(par_list[!id_bind][[1]]))
+  colnames(out) <- c("sim_mcmc", par_names)
+  out <- out[, -1]
+  return(out)
+}
 #' Transforms pgas output from \code{pgas_cpp()} or \code{pgas_R()} to a format
 #' suitable for the function
 #' \code{pmcmcDiagnostics::analyse_mcmc_convergence2()}

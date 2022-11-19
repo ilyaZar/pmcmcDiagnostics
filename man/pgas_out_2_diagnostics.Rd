@@ -27,11 +27,11 @@ simulated standard deviation values
 \item{\code{phi_xa:}}{matrix of dimension DD x num_mncmc_draws} of
 simulated autoregressive parameter values
 \item{\code{bet_xa}}{matrix of dimension num_par_beta x num_mncmc_draws}
-of simulated regressor coefficient values in the order they appera in the
+of simulated regressor coefficient values in the order they appear in the
 latent state transition equation from d=1,...,DD
 }}
 
-\item{par_inits}{list of initializaiton values for parameter s}
+\item{par_inits}{list of initialization values for parameter s}
 
 \item{par_names}{list of 3: first component is the name for sigma_squared and
 phi, the second component is a list of regressor names for Z-type
@@ -41,10 +41,10 @@ regressors, and the last is for U-type regressors}
 values; the input argument should have the same structure as the argument
 \code{par_inits}}
 
-\item{state_names}{character vector of dimension NN gving the names of
+\item{state_names}{character vector of dimension NN giving the names of
 the US states}
 
-\item{energy_type_names}{character vector of dimension DD gving the names of
+\item{energy_type_names}{character vector of dimension DD giving the names of
 the energy types}
 
 \item{NN}{number of cross sectional units}

@@ -2,27 +2,30 @@
 #'
 #' The output diagnostics table summarizes posterior mean, standard deviation of
 #' the parameter under the posterior distribution and standard deviation of the
-#' posterior mean, confidence bands, HPDs, effective sample sizes (also as stan
+#' posterior mean, confidence bands, HPDs, effective sample sizes (also as Stan
 #' version with ESS bulk/tail) in columns for each parameter (in rows).
 #'
 #' @param num_par number of total parameters (rows of the output table)
+#' @param par_names names of parameters to be taken as rownames in output table
 #' @param mcmc_sims (particle) MCMC draws/simulated samples
-#' @param mcmc_sims_after (particle) MCMC draws/simulated samples after burnin
-#' @param burn burnin in period
+#' @param mcmc_sims_after (particle) MCMC draws/simulated samples after burn-in
+#' @param burn burn-in in period
 #' @param num_mcmc number of MCMC iterations
-#' @param posterior_means precomputed posterior means
+#' @param posterior_means pre-computed posterior means
 #' @param start_vals starting values of the parameter draws
 #' @param true_vals true values with default set to \code{NULL}
 #' @param ki_prob probability mass to cover with confidence bands and HPD
 #' @param compute_ess logical; if \code{TRUE} computes the effective sample size
 #' @param compute_ess_stan logical; if \code{TRUE} computes the effective sample
-#'   size in stan-style i.e. with ESS bulk and ESS tail
+#'   size in Stan-style i.e. with ESS bulk and ESS tail
+#' @param settings_table settings for table output
 #'
 #' @return returns output diagnostic table with at least 8 columns (mean, sd,
-#'   sd-posterior mean, confidence intervall, HPDs) but up to 11 columns (if
-#'   ESS, ESS bulk and ESS tail are included)
+#'   sd-posterior mean, confidence interval, HPDs) but up to 11 columns (if ESS,
+#'   ESS bulk and ESS tail are included)
 #' @export
 diagnostics_table <- function(num_par,
+                              par_names,
                               mcmc_sims,
                               mcmc_sims_after,
                               burn,
@@ -32,8 +35,9 @@ diagnostics_table <- function(num_par,
                               true_vals = NULL,
                               ki_prob,
                               compute_ess = TRUE,
-                              compute_ess_stan = TRUE) {
-  browser()
+                              compute_ess_stan = TRUE,
+                              settings_table) {
+
   summary_results <- data.frame(start_val = numeric(num_par),
                                 mean = numeric(num_par),
                                 sd = numeric(num_par),
@@ -115,7 +119,6 @@ diagnostics_table <- function(num_par,
   check_hpd          <- apply(verify_KIs, 1, which.min)
   id_check_phd_fails <- which(check_hpd == 1)
   check_hpd          <- unique(check_hpd)
-  browser()
   if (!(length(check_hpd) == 1) || !(check_hpd == 2)) {
     msg1 <- paste0("HPD is not smaller than KI intervall for param. numbers: ")
     msg2 <- paste0(as.character(id_check_phd_fails), collapse = ", ")
@@ -136,7 +139,7 @@ diagnostics_table <- function(num_par,
                                     summary_results[, (8 + 1):(8+num_add_rest),
                                                     drop = FALSE])
     }
-    return(summary_results_true)
+    summary_results <- summary_results_true
   } else {
     significant_KI <-  (sign(summary_results[, 5, drop = TRUE]) ==
                         sign(summary_results[, 6, drop = TRUE]))
@@ -152,6 +155,41 @@ diagnostics_table <- function(num_par,
                                     summary_results[, (8 + 1):(8 +num_add_rest),
                                                     drop = FALSE])
     }
-    return(summary_results_significant)
+    summary_results <- summary_results_significant
   }
+  row.names(summary_results) <- par_names
+  if (settings_table$table_view) {
+    summary_results_view <- summary_results
+    ID_round <- which(!sapply(summary_results_view, is.logical))
+    summary_results_view[, ID_round] <- round(summary_results_view[, ID_round],
+                                              digits = settings_table$table_prec)
+    utils::View(summary_results_view, title = paste(settings_table$table_name,
+                                                    "_summary_results",
+                                                    sep = ""))
+  }
+  if (settings_table$table_save) {
+    if (is.null(par_names) || is.null(par_names)) {
+      stop("Can't save results in table form: label names required!")
+    }
+    summary_results_save <- summary_results
+    summary_results_save <- cbind(par_names, summary_results_save)
+    # row.names(summary_results_save) <- par_names
+    # summary_results_save <- cbind(par_name = par_names, summary_results_save)
+    readr::write_csv(summary_results_save,
+                     file = file.path(settings_table$table_path,
+                                      paste0(settings_table$table_name,
+                                             ".csv")))
+  }
+  id1 <- which(names(summary_results) == "sd_mean")
+  part_1 <- summary_results[, 1:id1]
+
+  id2 <- which(names(summary_results) == "contained_hpd")
+  id_check <- identical(id2, integer(0))
+  if (id_check) id2 <- which(names(summary_results) == "HPD_up")
+  part_2 <- summary_results[, (id1 + 1):id2]
+  part_3 <- summary_results[, (id2 + 1):ncol(summary_results), drop = FALSE]
+  return(list(all = summary_results,
+              core = part_1,
+              KIs = part_2,
+              convergence = part_3))
 }

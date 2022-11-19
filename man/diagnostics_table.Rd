@@ -6,6 +6,7 @@
 \usage{
 diagnostics_table(
   num_par,
+  par_names,
   mcmc_sims,
   mcmc_sims_after,
   burn,
@@ -15,11 +16,14 @@ diagnostics_table(
   true_vals = NULL,
   ki_prob,
   compute_ess = TRUE,
-  compute_ess_stan = TRUE
+  compute_ess_stan = TRUE,
+  settings_table
 )
 }
 \arguments{
 \item{num_par}{number of total parameters (rows of the output table)}
+
+\item{par_names}{names of parameters to be taken as rownames in output table}
 
 \item{mcmc_sims}{(particle) MCMC draws/simulated samples}
 
@@ -29,7 +33,7 @@ diagnostics_table(
 
 \item{num_mcmc}{number of MCMC iterations}
 
-\item{posterior_means}{precomputed posterior means}
+\item{posterior_means}{pre-computed posterior means}
 
 \item{start_vals}{starting values of the parameter draws}
 
@@ -41,6 +45,8 @@ diagnostics_table(
 
 \item{compute_ess_stan}{logical; if \code{TRUE} computes the effective sample
 size in stan-style i.e. with ESS bulk and ESS tail}
+
+\item{settings_table}{settings for table output}
 }
 \value{
 returns output diagnostic table with at least 8 columns (mean, sd,
