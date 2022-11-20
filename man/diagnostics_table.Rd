@@ -15,21 +15,21 @@ diagnostics_table(
   start_vals,
   true_vals = NULL,
   ki_prob,
-  compute_ess = TRUE,
-  compute_ess_stan = TRUE,
+  ESS_STANDARD = TRUE,
+  ESS_STAN = TRUE,
   settings_table
 )
 }
 \arguments{
 \item{num_par}{number of total parameters (rows of the output table)}
 
-\item{par_names}{names of parameters to be taken as rownames in output table}
+\item{par_names}{names of parameters to be taken as row-names in output table}
 
 \item{mcmc_sims}{(particle) MCMC draws/simulated samples}
 
-\item{mcmc_sims_after}{(particle) MCMC draws/simulated samples after burnin}
+\item{mcmc_sims_after}{(particle) MCMC draws/simulated samples after burn-in}
 
-\item{burn}{burnin in period}
+\item{burn}{burn-in in period}
 
 \item{num_mcmc}{number of MCMC iterations}
 
@@ -41,21 +41,22 @@ diagnostics_table(
 
 \item{ki_prob}{probability mass to cover with confidence bands and HPD}
 
-\item{compute_ess}{logical; if \code{TRUE} computes the effective sample size}
+\item{ESS_STANDARD}{logical; if \code{TRUE} computes the effective sample
+size}
 
-\item{compute_ess_stan}{logical; if \code{TRUE} computes the effective sample
-size in stan-style i.e. with ESS bulk and ESS tail}
+\item{ESS_STAN}{logical; if \code{TRUE} computes the effective sample
+size in Stan-style i.e. with ESS bulk and ESS tail}
 
 \item{settings_table}{settings for table output}
 }
 \value{
 returns output diagnostic table with at least 8 columns (mean, sd,
-sd-posterior mean, confidence intervall, HPDs) but up to 11 columns (if
-ESS, ESS bulk and ESS tail are included)
+sd-posterior mean, confidence interval, HPDs) but up to 11 columns (if ESS,
+ESS bulk and ESS tail are included)
 }
 \description{
 The output diagnostics table summarizes posterior mean, standard deviation of
 the parameter under the posterior distribution and standard deviation of the
-posterior mean, confidence bands, HPDs, effective sample sizes (also as stan
+posterior mean, confidence bands, HPDs, effective sample sizes (also as Stan
 version with ESS bulk/tail) in columns for each parameter (in rows).
 }

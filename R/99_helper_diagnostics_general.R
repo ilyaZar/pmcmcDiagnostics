@@ -117,8 +117,10 @@ get_true_vals <- function(list_true_vals) {
   for(j in names_pars) {
     for (d in 1:DD) {
       if (is.null(list_true_vals[[j]])) next;
-      if (j %in% c("sig_sq", "phi")) {
+      if (j == c("sig_sq")) {
         out <- c(out, unique(list_true_vals[[j]][d, ]))
+      } else if (j == "phi") {
+        out <- c(out, unlist(list_true_vals[[j]][[d]][, 1]))
       } else if (j == "beta_z_lin") {
         out <- c(out, unlist(list_true_vals[[j]][[d]]))
       } else if (j == "beta_u_lin") {
@@ -128,5 +130,6 @@ get_true_vals <- function(list_true_vals) {
       }
     }
   }
+  out <- unname(out)
   return(out)
 }

@@ -5,35 +5,35 @@
 #' (ggplot2 or base) plots, and an output table summary with posterior mean,
 #' standard deviation of the parameter under the posterior distribution and
 #' standard deviation of the posterior mean, confidence bands, HPDs, and
-#' effective sample sizes (the latter also in the stan variant i.e. ESS bulk and
-#' tail). Also, update rates of simulated latent state parameters (bootsrap
+#' effective sample sizes (the latter also in the Stan variant i.e. ESS bulk and
+#' tail). Also, update rates of simulated latent state parameters (bootstrap
 #' particle filter/SMC output) are returned. All diagnostics can be saved
-#' specifiying a directory, name and if a logical value, \code{..._save},
-#' idnicating whether plots, output diagnostics table or update rates should be
+#' specifying a directory, name and if a logical value, \code{..._save},
+#' indicating whether plots, output diagnostics table or update rates should be
 #' save.
 #'
 #' @param model_output a model as produced from the output of [BNMPD::pgas_d]
 #'   e.g.
-#' @param mcmc_sims simulated draws/ mcmc output: matrix of dimension "simulated
+#' @param mcmc_sims simulated draws/MCMC output: matrix of dimension "simulated
 #'   MCMC draws" (rows) x "parameters" (cols)
 #' @param states state trajectories i.e. particle filter (SMC) output
 #' @param model_meta a list of two elements:
 #'   \itemize{
-#'     \item{\code{par_val_names = NULL}}{parameter names as used in the pgas
+#'     \item{\code{par_val_names = NULL}}{parameter names as used in the PGAS
 #'     output (col names for \code{mcmcm_sims} e.g.)}
 #'     \item{\code{par_lab_names = NULL}}{names for labels}
 #'   }
 #' @param settings_mcmc a list of four elements:
 #'   \itemize{
-#'     \item{\code{burn}}{burnin period}
-#'     \item{\code{thin}}{thinning; \code{thin = 10} means every 10th draw is
+#'     \item{\code{burn: }}{burnin period}
+#'     \item{\code{thin: }}{thinning; \code{thin = 10} means every 10th draw is
 #'     excluded}
-#'     \item{\code{ki_prob}}{ probablitlity with which confidence intervals and
+#'     \item{\code{ki_prob: }}{probability with which confidence intervals and
 #'     highest posterior density regions are computed}
-#'     \item{\code{compute_ess}}{logical; if \code{TRUE}, computes the effective sample
+#'     \item{\code{compute_ess: }}{logical; if \code{TRUE}, computes the effective sample
 #'   size}
-#'     \item{\code{compute_ess}}{logical; if \code{TRUE}, computes the effective
-#'   sample sizes in terms of ESS bulk and ESS tail (see the function
+#'   \item{\code{compute_ess_stan: }}{logical; if \code{TRUE}, computes the
+#'   effective sample sizes in terms of ESS bulk and ESS tail (see the function
 #'   documentation of \code{diagnostics_table()} for details)}
 #'   }
 #' @param settings_plots a list of five:
@@ -83,6 +83,11 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                       settings_mcmc = list(burn = 1,
                                                            thin = NULL,
                                                            ki_prob = 0.9,
+                                                           q_probs = c(0.025,
+                                                                       0.25,
+                                                                       0.5,
+                                                                       0.75,
+                                                                       0.975),
                                                            compute_ess = TRUE,
                                                            compute_ess_stan = FALSE),
                                       settings_plots = list(plot_view = FALSE,
@@ -103,12 +108,11 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                   (!is.null(mcmc_sims) &&
                      !is.null(states))))
 
-
   if (class(model_output) == "pmcmc") {
     states <- model_output$x
   }
-  par_names <- unlist(model_meta$par_val_names)
-  lab_names <- unlist(model_meta$par_lab_names)
+  par_names <- unname(unlist(model_meta$par_val_names))
+  lab_names <- unname(unlist(model_meta$par_lab_names))
   true_vals <- get_true_vals(list_true_vals = model_output$true_vals)
 
   mcmc_sims <- model_out2sims(model_output, par_names)
@@ -162,8 +166,9 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                              start_vals  = start_vals ,
                              true_vals = true_vals,
                              ki_prob = settings_mcmc$ki_prob,
-                             compute_ess = settings_mcmc$compute_ess,
-                             compute_ess_stan = settings_mcmc$compute_ess_stan,
+                             q_probs = settings_mcmc$q_probs,
+                             ESS_STANDARD = settings_mcmc$compute_ess,
+                             ESS_STAN = settings_mcmc$compute_ess_stan,
                              settings_table)
   }
 
@@ -171,7 +176,7 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
     get_update_rates(states, settings_urs, settings_plots)
   }
 
-  if (!is.null(out)) warning(paste0("No summary results computed, ",
-                                    "nothing to return ..."))
+  if (is.null(out)) warning(paste0("No summary results computed, ",
+                                   "nothing to return ..."))
   return(out)
 }

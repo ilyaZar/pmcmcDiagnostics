@@ -1,65 +1,77 @@
 model_out2sims <- function(mod_out, par_names) {
-  sig_sq_x  <- mod_out$sig_sq_x
-  phi_x     <- mod_out$phi_x
-  bet_z     <- mod_out$bet_z
-  bet_u     <- mod_out$bet_u
-  vcm_bet_u <- mod_out$vcm_bet_u
+  DD <- nrow(mod_out$sig_sq_x)
 
-  if (!is.null(sig_sq_x)) {
-    sig_sq_x <- matrix(sig_sq_x, ncol = 1)
-  }
-  if (!is.null(phi_x)) {
-    phi_x <- matrix(phi_x, ncol = 1)
-  }
-  if (!is.null(bet_z)) {
-    if (!is.na(dim(bet_z)[3])) {
-      bet_z <- matrix(apply(bet_z, 3, t), nrow = nrow(bet_z[,,1]))
-    } else {
-      bet_z <- t(bet_z)
-    }
-  }
-  if (!is.null(bet_u)) {
-    if (!is.na(dim(bet_u)[3])) {
-      NN     <- dim(bet_u)[3]
-      MM     <- dim(bet_u)[2]
-      num_re <- dim(bet_u)[1]
+  sig_sq_x <- get_transpose_container_1(mod_out$sig_sq_x)
+  phi_x    <- get_transpose_container_1(mod_out$phi_x)
+  bet_z    <- get_transpose_container_1(mod_out$bet_z)
 
-      out <- matrix(0, ncol = num_re*NN, nrow = MM)
+  bet_u         <- get_transpose_container_2(mod_out$bet_u, DD)
+  vcm_bet_u_mat <- get_transpose_container_3(mod_out$vcm_bet_u)
+
+  par_list <- list(sig_sq_x, phi_x, bet_z, bet_u, vcm_bet_u_mat)
+  id_bind <- sapply(par_list, is.null)
+
+  out <- Reduce(cbind, par_list[!id_bind])
+  colnames(out) <- unname(par_names)
+  return(out)
+}
+get_transpose_container_1 <- function(param) {
+  if (!is.null(param)) {
+    par_out <- t(param)
+  } else {
+    par_out <- NULL
+  }
+  return(par_out)
+}
+get_transpose_container_2 <- function(param, DD) {
+  if (!is.null(param)) {
+    par_out <- param
+    if (!is.na(dim(par_out)[3])) {
+      NN     <- dim(par_out)[3]
+      MM     <- dim(par_out)[2]
+      num_re <- dim(par_out)[1] / DD
+
+      out <- matrix(0, ncol = num_re * NN * DD, nrow = MM)
       iter <- 1
-      for (r in 1:num_re) {
+      for (r in 1:(num_re * DD)) {
         for (n in 1:NN) {
-          out[, iter] <- as.vector(bet_u[r, , n])
+          out[, iter] <- as.vector(par_out[r, , n])
           iter <- iter + 1
         }
       }
-
-      bet_u <- out
+      par_out <- out
     } else {
       stop("not yet implemented")
     }
+  } else {
+    par_out <- NULL
   }
-  for (d in 1:length(mod_out$vcm_bet_u)) {
-    dim_vcm_bet_u <- nrow(mod_out$vcm_bet_u[[d]])
-    vcm_bet_u_mat <- matrix(0, nrow = dim(mod_out$vcm_bet_u[[1]])[3],
-                            ncol = dim_vcm_bet_u^2)
-    k <- 1
-    for (i in 1:dim_vcm_bet_u) {
-      for (j in 1:dim_vcm_bet_u) {
-        vcm_bet_u_mat[, k] <- mod_out$vcm_bet_u[[1]][i, j, ]
-        k <- k + 1
+  return(par_out)
+}
+get_transpose_container_3 <- function(param) {
+  if (!is.null(param)) {
+    DD <- length(param)
+    par_out_list <- vector("list", DD)
+    for (d in 1:DD) {
+      dim_par_out <- nrow(param[[d]])
+      par_out <- matrix(0, nrow = dim(param[[d]])[3],
+                        ncol = dim_par_out^2)
+      k <- 1
+      for (i in 1:dim_par_out) {
+        for (j in 1:dim_par_out) {
+          par_out[, k] <- param[[d]][i, j, ]
+          k <- k + 1
+        }
       }
+      par_out_list[[d]] <- par_out
     }
+    out <- Reduce(cbind, par_out_list)
+  } else {
+    out <- NULL
   }
-  par_list <- list(sig_sq_x, phi_x, bet_z, bet_u, vcm_bet_u_mat)
-  id_bind <- sapply(par_list, is.null)
-  out <- Reduce(cbind,
-                par_list[!id_bind],
-                init =  1:nrow(par_list[!id_bind][[1]]))
-  colnames(out) <- c("sim_mcmc", par_names)
-  out <- out[, -1]
   return(out)
 }
-#' Transforms pgas output from \code{pgas_cpp()} or \code{pgas_R()} to a format
+#' Transforms PGAS output from \code{pgas_cpp()} or \code{pgas_R()} to a format
 #' suitable for the function
 #' \code{pmcmcDiagnostics::analyse_mcmc_convergence2()}
 #'

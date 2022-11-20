@@ -6,7 +6,7 @@
 #' version with ESS bulk/tail) in columns for each parameter (in rows).
 #'
 #' @param num_par number of total parameters (rows of the output table)
-#' @param par_names names of parameters to be taken as rownames in output table
+#' @param par_names names of parameters to be taken as row-names in output table
 #' @param mcmc_sims (particle) MCMC draws/simulated samples
 #' @param mcmc_sims_after (particle) MCMC draws/simulated samples after burn-in
 #' @param burn burn-in in period
@@ -15,8 +15,9 @@
 #' @param start_vals starting values of the parameter draws
 #' @param true_vals true values with default set to \code{NULL}
 #' @param ki_prob probability mass to cover with confidence bands and HPD
-#' @param compute_ess logical; if \code{TRUE} computes the effective sample size
-#' @param compute_ess_stan logical; if \code{TRUE} computes the effective sample
+#' @param ESS_STANDARD logical; if \code{TRUE} computes the effective sample
+#'   size
+#' @param ESS_STAN logical; if \code{TRUE} computes the effective sample
 #'   size in Stan-style i.e. with ESS bulk and ESS tail
 #' @param settings_table settings for table output
 #'
@@ -34,22 +35,31 @@ diagnostics_table <- function(num_par,
                               start_vals,
                               true_vals = NULL,
                               ki_prob,
-                              compute_ess = TRUE,
-                              compute_ess_stan = TRUE,
+                              q_probs,
+                              ESS_STANDARD = TRUE,
+                              ESS_STAN = TRUE,
                               settings_table) {
 
   summary_results <- data.frame(start_val = numeric(num_par),
                                 mean = numeric(num_par),
                                 sd = numeric(num_par),
                                 sd_mean = numeric(num_par),
-                                KI_lo = numeric(num_par),
-                                KI_up = numeric(num_par),
+                                CI_lo = numeric(num_par),
+                                CI_up = numeric(num_par),
+                                contained_CI = numeric(num_par),
                                 HPD_lo = numeric(num_par),
-                                HPD_up = numeric(num_par))
-  if (compute_ess) {
+                                HPD_up = numeric(num_par),
+                                contained_HPD = numeric(num_par))
+  if (!is.null(q_probs)) {
+    q_probs_mat <- matrix(0, nrow = num_par, ncol = length(q_probs))
+    summary_results <- cbind(summary_results, q_probs_mat)
+    id_qs <- 11:(11 + length(q_probs) - 1)
+    names(summary_results)[id_qs] <- paste0(q_probs * 100, "%")
+  }
+  if (ESS_STANDARD && !ESS_STAN) {
     summary_results = cbind(summary_results, ess = numeric(num_par))
   }
-  if (compute_ess_stan) {
+  if (ESS_STAN && !ESS_STANDARD) {
     summary_results = cbind(summary_results, ess_bulk = numeric(num_par))
     summary_results = cbind(summary_results, ess_tail = numeric(num_par))
     # The ess_bulk function produces an estimated Bulk Effective Sample Size
@@ -68,6 +78,83 @@ diagnostics_table <- function(num_par,
     # Markov Chain in order to be reliable and indicate that estimates of
     # respective posterior quantiles are reliable.
   }
+  if (ESS_STANDARD && ESS_STAN) {
+    summary_results = cbind(summary_results, ess = numeric(num_par))
+    summary_results = cbind(summary_results, ess_bulk = numeric(num_par))
+    summary_results = cbind(summary_results, ess_tail = numeric(num_par))
+  }
+  # summary_results2$true_vals <- true_vals
+  cis <- compute_ci(mcmc_sims_after, ki_prob)
+  hpd <- compute_hpd(mcmc_sims, mcmc_sims_after, burn, num_mcmc, ki_prob)
+  ess <- compute_ess(mcmc_sims_after, ESS_STANDARD, ESS_STAN)
+  qs  <- compute_quantiles(mcmc_sims_after, q_probs)
+  summary_results$start_val <- start_vals
+  summary_results$mean      <- posterior_means
+  summary_results[, 3:4]    <- compute_sds(mcmc_sims_after, ess[, 1])
+  summary_results[, 5:6]    <- cis
+  summary_results[, 7]      <- compute_significance_indicator(cis, true_vals)
+  summary_results[, 8:9]    <- hpd
+  summary_results[, 10]     <- compute_significance_indicator(hpd, true_vals)
+  summary_results[, id_qs]  <- qs
+  id_ess <- (id_qs[length(id_qs)] + 1):ncol(summary_results)
+  summary_results[, id_ess] <- compute_ess(mcmc_sims_after,
+                                           ESS_STANDARD,
+                                           ESS_STAN)
+  if (!is.null(true_vals)) summary_results <- cbind(true_vals = true_vals,
+                                                    summary_results)
+  row.names(summary_results) <- unname(par_names)
+
+  if (settings_table$table_view) {
+    view_diagnostics_table(summary_results,
+                           precision = settings_table$table_prec,
+                           table_name = settings_table$table_name)
+  }
+  if (settings_table$table_save) {
+    write_diagnostics_table(summary_results, par_names,
+                            settings_table$table_path,
+                            settings_table$table_name)
+  }
+  ids <- compute_id_parts(summary_results, true_vals, q_probs)
+  part_1 <- summary_results[, ids[["id_part1"]]]
+  part_2 <- summary_results[, ids[["id_part2"]]]
+  part_3 <- summary_results[, ids[["id_part3"]]]
+  part_4 <- summary_results[, ids[["id_part4"]]]
+
+  if(ncol(part_4) == 0) part_4 <- NULL
+
+  return(list(all = summary_results,
+              core = part_1,
+              CIs = part_2,
+              quantiles = part_3,
+              convergence = part_4))
+}
+compute_id_parts <- function(summary_results, true_vals, q_probs) {
+  ncol_sdmean <- which(names(summary_results) == "sd_mean")
+  ncol_cnthpd <- which(names(summary_results) == "contained_HPD")
+  ncol_qprobs <- ncol_cnthpd + length(q_probs)
+  id_part1 <- seq_len(ncol_sdmean)
+  id_part2 <- (ncol_sdmean + 1):ncol_cnthpd
+  id_part3 <- (ncol_cnthpd + 1):ncol_qprobs
+
+  if (ncol_qprobs < ncol(summary_results)) {
+    id_part4 <- (ncol_qprobs + 1):ncol(summary_results)
+  } else {
+    id_part4 <- numeric(0)
+  }
+  return(list(id_part1 = id_part1, id_part2 = id_part2,
+              id_part3 = id_part3, id_part4 = id_part4))
+}
+#' Compute HPD interval
+#'
+#' Computes before and after burn-in, and then chooses the smallest of those.
+#'
+#' @inheritParams diagnostics_table
+#'
+#' @return a two-column matrix that contains the smallest HPD interval for each
+#'   parameter
+#' @export
+compute_hpd <- function(mcmc_sims, mcmc_sims_after,
+                        burn, num_mcmc, ki_prob) {
   mcmc_sims_coda <- coda::mcmc(mcmc_sims, start = burn, end = num_mcmc)
   hpd_interval1  <- unname(coda::HPDinterval(mcmc_sims_coda, prob = ki_prob))
   hpd_interval2  <- t(HDInterval::hdi(mcmc_sims_after,
@@ -76,120 +163,216 @@ diagnostics_table <- function(num_par,
   min_hpd <- cbind(HPD1 = hpd_interval1[, 2] - hpd_interval1[, 1],
                    HPD2 = hpd_interval2[, 2] - hpd_interval2[, 1])
   min_hpd <- apply(min_hpd, 1, which.min)
-  ess <- numeric(num_par)
-  for (i in 1:num_par) {
-    val <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
-                    error = function(err) NA_real_)
-    ess[i] <- val
-  }
-  for (i in 1:num_par) {
-    summary_results[i, 1] <- start_vals[i]
-    summary_results[i, 2] <- posterior_means[i]
-    summary_results[i, 3] <- stats::sd(mcmc_sims_after[, i])
-    summary_results[i, 4] <- summary_results[i, 3]/sqrt(ess[i])
-    KI <- stats::quantile(mcmc_sims_after[, i],
-                          probs = c((1 - ki_prob)/2, 1 - (1 - ki_prob)/2),
-                          names = FALSE)
-    summary_results[i, 5] <- KI[1]
-    summary_results[i, 6] <- KI[2]
+
+  num_pars <-  nrow(hpd_interval1)
+  hpd_interval_out <- matrix(0, nrow = num_pars,
+                             ncol = ncol(hpd_interval1))
+  for (i in 1:num_pars) {
     if (min_hpd[i] == 1) {
-      summary_results[i, 7] <- hpd_interval1[i, 1]
-      summary_results[i, 8] <- hpd_interval1[i, 2]
+      hpd_interval_out[i, ] <- hpd_interval1[i, ]
     } else {
-      summary_results[i, 7] <- hpd_interval2[i, 1]
-      summary_results[i, 8] <- hpd_interval2[i, 2]
-    }
-    if (compute_ess) {
-      summary_results[i, 9] <- round(ess[i], digits = 0)
-    }
-    if (compute_ess_stan && compute_ess) {
-      summary_results[i, 10] <- round(rstan::ess_bulk(mcmc_sims_after[, i]),
-                                      digits = 0)
-      summary_results[i, 11] <- round(rstan::ess_tail(mcmc_sims_after[, i]),
-                                      digits = 0)
-    } else if (compute_ess_stan && !compute_ess) {
-      summary_results[i, 9] <- round(rstan::ess_bulk(mcmc_sims_after[, i]),
-                                     digits = 0)
-      summary_results[i, 10] <- round(rstan::ess_tail(mcmc_sims_after[, i]),
-                                      digits = 0)
+      hpd_interval_out[i, ] <- hpd_interval2[i, ]
     }
   }
-  verify_KIs <- cbind(KI  = summary_results[, 6] - summary_results[, 5],
-                      HPD = summary_results[, 8] - summary_results[, 7])
-  check_hpd          <- apply(verify_KIs, 1, which.min)
+  colnames(hpd_interval_out) <- c("HPD_lo", "HPD_up")
+  return(hpd_interval_out)
+}
+#' Computes the expected sample size.
+#'
+#' Uses samples after burn-in period.
+#'
+#' @inheritParams diagnostics_table
+#'
+#' @return a vector of expected sample sizes of length equal to the number of
+#'   parameters
+#' @export
+compute_ess <- function(mcmc_sims_after, ESS_STANDARD, ESS_STAN) {
+  num_pars <- ncol(mcmc_sims_after)
+  if (ESS_STANDARD && !ESS_STAN) {
+    ess <- numeric(num_pars)
+    for (i in 1:num_pars) {
+      ess[i] <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
+                         error = function(err) NA_real_)
+    }
+    ess <- matrix(round(ess, digits = 0), ncol = 1)
+    colnames(ess) <- "ess"
+  } else if (ESS_STAN && !ESS_STANDARD) {
+    ess_bulk <- numeric(num_pars)
+    ess_tail <- numeric(num_pars)
+    for (i in 1:num_pars) {
+      ess_bulk[i] <- tryCatch(rstan::ess_bulk(mcmc_sims_after[, i]),
+                              error = function(err) NA_real_)
+      ess_tail[i] <- tryCatch(rstan::ess_tail(mcmc_sims_after[, i]),
+                              error = function(err) NA_real_)
+    }
+    ess_bulk <- round(ess_bulk, digits = 0)
+    ess_tail <- round(ess_bulk, digits = 0)
+    ess <- cbind(ess_bulk = ess_bulk, ess_tail = ess_tail)
+  } else if (ESS_STAN && ESS_STANDARD) {
+    ess_stnd <- numeric(num_pars)
+    ess_bulk <- numeric(num_pars)
+    ess_tail <- numeric(num_pars)
+    for (i in 1:num_pars) {
+      ess_bulk[i] <- tryCatch(rstan::ess_bulk(mcmc_sims_after[, i]),
+                              error = function(err) NA_real_)
+      ess_tail[i] <- tryCatch(rstan::ess_tail(mcmc_sims_after[, i]),
+                              error = function(err) NA_real_)
+      ess_stnd[i] <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
+                              error = function(err) NA_real_)
+    }
+    ess_stnd <- round(ess_stnd, digits = 0)
+    ess_bulk <- round(ess_bulk, digits = 0)
+    ess_tail <- round(ess_tail, digits = 0)
+    ess <- cbind(ess_stnd = ess_stnd,
+                 ess_bulk = ess_bulk,
+                 ess_tail = ess_tail)
+  }
+  return(ess)
+}
+#' Computes posterior standard deviation & standard deviation of posterior mean
+#'
+#' Standard deviation of the posterior mean is based on the expected sample
+#' size.
+#'
+#' @inheritParams diagnostics_table
+#' @param ess expected sample sizes as produced by [compute_ess]
+#'
+#' @return a two column matrix of two types of standard deviations:
+#'   \itemize{
+#'     \item posterior standard deviation
+#'     \item estimate of standard deviation of the posterior mean based on the
+#'     expected sample size
+#'   }
+#' @export
+compute_sds <- function(mcmc_sims_after, ess) {
+  num_pars <- length(ess)
+
+  out1 <- numeric(num_pars)
+  out2 <- numeric(num_pars)
+  for(i in 1:num_pars) {
+    out1[i] <- stats::sd(mcmc_sims_after[, i])
+    out2[i] <- out1[i]/sqrt(ess[i])
+  }
+
+  out <- cbind(out1, out2)
+  colnames(out) <- c("sd", "sd_mean")
+  return(out)
+}
+#' Computes confidence interval
+#'
+#' Confidence interval is based on samples after burn-in.
+#'
+#' @inheritParams diagnostics_table
+#'
+#' @return a two column matrix with upper/lower (first/second column) bound of
+#'   a confidence interval with significance given by \code{ki_prob}
+#' @export
+compute_ci <- function(mcmc_sims_after, ki_prob) {
+  num_pars <- ncol(mcmc_sims_after)
+
+  CI <- matrix(0, nrow = num_pars, ncol = 2)
+  for (i in 1:num_pars) {
+    CI[i, ] <- stats::quantile(mcmc_sims_after[, i],
+                               probs = c((1 - ki_prob)/2, 1 - (1 - ki_prob)/2),
+                               names = FALSE)
+  }
+  colnames(CI) <- c("CI_lo", "CI_up")
+  return(CI)
+}
+compute_quantiles <- function(mcmc_sims_after,
+                              q_probs) {
+  num_pars <- ncol(mcmc_sims_after)
+
+  quants <- matrix(0, nrow = num_pars, ncol = length(q_probs))
+  for (i in 1:num_pars) {
+    quants[i, ] <- stats::quantile(mcmc_sims_after[, i],
+                                   probs = q_probs,
+                                   names = FALSE)
+  }
+  colnames(quants) <- paste0(q_probs * 100, "%")
+  return(quants)
+}
+#' Checks whether HPD is smaller than CI (for the same significance)
+#'
+#' Ideally, the HPD is the smallest/densest region around the posterior mean,
+#' so there are computational issues whenever this is not the case (and, here
+#' specifically, whenever the HPD is not smaller than the confidence interval
+#' at the same significance level).
+#'
+#' @param CI a confidence interval as returned via [compute_ci]
+#' @param HPD a confidence interval as returned via [compute_hpd]
+#'
+#' @return side effect: message indicating when HPD is not smaller than CI
+#' @export
+verify_CIs <- function(CI, HPD) {
+  verify_CIs         <- cbind(CI[, 2] - CI[, 1], HPD[, 2] - HPD[, 1])
+  check_hpd          <- apply(verify_CIs, 1, which.min)
   id_check_phd_fails <- which(check_hpd == 1)
   check_hpd          <- unique(check_hpd)
   if (!(length(check_hpd) == 1) || !(check_hpd == 2)) {
-    msg1 <- paste0("HPD is not smaller than KI intervall for param. numbers: ")
+    msg1 <- paste0("HPD is not smaller than CI intervall for param. numbers: ")
     msg2 <- paste0(as.character(id_check_phd_fails), collapse = ", ")
     msg3 <- "\n"
     cat(crayon::red(paste0(msg1, msg2, msg3)))
   }
+  return(invisible(NULL))
+}
+#' Check whether CI and HPD contain true values or zeros.
+#'
+#' The former case is for simulations (with \code{true_vals} being not
+#' \code{NULL}) and the latter checks for significance i.e. if 0 is covered or
+#' not.
+#'
+#' @param int a matrix of two columns with upper/lower confidence bands as
+#'   produced by [compute_ci] or [compute_hpd]
+#' @inheritParams diagnostics_table
+#'
+#' @return a list of two vectors giving \code{TRUE} if \code{true_vals} is
+#'   covered (or zero, whenever true values are not passed), or \code{FALSE},
+#'   if that is not the case for both CI and HPD
+#' @export
+compute_significance_indicator <- function(int, true_vals) {
   if (!is.null(true_vals)) {
-    contained_KI <-  ((summary_results[, 5, drop = TRUE] <= true_vals) &
-                        (summary_results[, 6, drop = TRUE] >= true_vals))
-    contained_hpd <-  ((summary_results[, 7, drop = TRUE] <= true_vals) &
-                         (summary_results[, 8, drop = TRUE] >= true_vals))
-    summary_results_true <- cbind(true_vals = true_vals,
-                                  summary_results[, 1:6], contained_KI,
-                                  summary_results[, 7:8], contained_hpd)
-    num_add_rest <- ncol(summary_results) + 3 - ncol(summary_results_true)
-    if (num_add_rest != 0) {
-      summary_results_true <- cbind(summary_results_true,
-                                    summary_results[, (8 + 1):(8+num_add_rest),
-                                                    drop = FALSE])
-    }
-    summary_results <- summary_results_true
+    contained_CI  <-  (int[, 1] <= true_vals) & (int[, 2] >= true_vals)
   } else {
-    significant_KI <-  (sign(summary_results[, 5, drop = TRUE]) ==
-                        sign(summary_results[, 6, drop = TRUE]))
-    significant_hpd <-  (sign(summary_results[, 7, drop = TRUE]) ==
-                         sign(summary_results[, 8, drop = TRUE]))
-    summary_results_significant <- cbind(summary_results[, 1:6],
-                                         significant_KI,
-                                         summary_results[, 7:8],
-                                         significant_hpd)
-    num_add_rest <- ncol(summary_results) + 2 -ncol(summary_results_significant)
-    if (num_add_rest != 0) {
-      summary_results_significant <- cbind(summary_results_significant,
-                                    summary_results[, (8 + 1):(8 +num_add_rest),
-                                                    drop = FALSE])
-    }
-    summary_results <- summary_results_significant
+    contained_CI  <- sign(int[, 1]) == sign(int[, 2])
   }
-  row.names(summary_results) <- par_names
-  if (settings_table$table_view) {
-    summary_results_view <- summary_results
-    ID_round <- which(!sapply(summary_results_view, is.logical))
-    summary_results_view[, ID_round] <- round(summary_results_view[, ID_round],
-                                              digits = settings_table$table_prec)
-    utils::View(summary_results_view, title = paste(settings_table$table_name,
-                                                    "_summary_results",
-                                                    sep = ""))
+  return(contained_CI)
+}
+#' Call \code{View} on \code{data.frame} of MCMC convergence diagnostics
+#'
+#' @param summary_diagnostics \code{data.frame} of MCMC convergence diagnostics
+#' @param precision digits used for rounding values
+#' @param table_name name of the table
+#'
+#' @return pure side effect call to \code{View}
+#' @export
+view_diagnostics_table <- function(summary_diagnostics, precision, table_name) {
+  ID_round <- which(!sapply(summary_diagnostics, is.logical))
+  summary_diagnostics[, ID_round] <- round(summary_diagnostics[, ID_round],
+                                           digits = precision)
+  utils::View(summary_diagnostics,
+              title = paste(table_name, "_summary_diagnostics", sep = ""))
+}
+#' Write \code{data.frame} of convergence diagnostics to '.csv'
+#'
+#' @param summary_diagnostics \code{data.frame} of MCMC convergence diagnostics
+#' @param par_names parameter names
+#' @param table_path path to write to
+#' @param table_name name of the table
+#'
+#' @return pure side effect; writing summary table to \code{.csv} file
+#' @export
+write_diagnostics_table <- function(summary_diagnostics, par_names,
+                                    table_path, table_name) {
+  if (is.null(par_names)) {
+    stop("Can't save results in table form: label names required!")
   }
-  if (settings_table$table_save) {
-    if (is.null(par_names) || is.null(par_names)) {
-      stop("Can't save results in table form: label names required!")
-    }
-    summary_results_save <- summary_results
-    summary_results_save <- cbind(par_names, summary_results_save)
-    # row.names(summary_results_save) <- par_names
-    # summary_results_save <- cbind(par_name = par_names, summary_results_save)
-    readr::write_csv(summary_results_save,
-                     file = file.path(settings_table$table_path,
-                                      paste0(settings_table$table_name,
-                                             ".csv")))
-  }
-  id1 <- which(names(summary_results) == "sd_mean")
-  part_1 <- summary_results[, 1:id1]
-
-  id2 <- which(names(summary_results) == "contained_hpd")
-  id_check <- identical(id2, integer(0))
-  if (id_check) id2 <- which(names(summary_results) == "HPD_up")
-  part_2 <- summary_results[, (id1 + 1):id2]
-  part_3 <- summary_results[, (id2 + 1):ncol(summary_results), drop = FALSE]
-  return(list(all = summary_results,
-              core = part_1,
-              KIs = part_2,
-              convergence = part_3))
+  summary_diagnostics_save <- summary_diagnostics
+  summary_diagnostics_save <- cbind(par_names, summary_diagnostics_save)
+  # row.names(summary_diagnostics_save) <- par_names
+  # summary_diagnostics_save <- cbind(par_name = par_names, summary_diagnostics_save)
+  write.csv(summary_diagnostics_save,
+            file = file.path(table_path,paste0(table_name, ".csv")),
+            row.names = FALSE)
 }
