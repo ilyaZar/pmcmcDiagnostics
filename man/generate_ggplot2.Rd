@@ -34,13 +34,13 @@ thinning}
 \item{true_vals}{true values if a simulation is run; default is NULL and true
 values will not be added for the histogram and trace plots}
 
-\item{posterior_means}{posterior means (have to be precomputed and passed
+\item{posterior_means}{posterior means (have to be pre-computed and passed
 directly here)}
 
 \item{plot_num}{number of parameter or plot}
 }
 \value{
-ggplot in 2x2 form displaying the mcmc diagnostics
+ggplot in 2x2 form displaying the MCMC diagnostics
 }
 \description{
 Generates ggplot graphic analysis plot of MCMC output for a model parameter

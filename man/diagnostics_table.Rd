@@ -15,6 +15,7 @@ diagnostics_table(
   start_vals,
   true_vals = NULL,
   ki_prob,
+  q_probs,
   ESS_STANDARD = TRUE,
   ESS_STAN = TRUE,
   settings_table

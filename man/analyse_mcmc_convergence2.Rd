@@ -9,10 +9,10 @@ analyse_mcmc_convergence2(
   mcmc_sims = NULL,
   states = NULL,
   model_meta = list(par_val_names = NULL, par_lab_names = NULL),
-  settings_mcmc = list(burn = 1, thin = NULL, ki_prob = 0.9, compute_ess = TRUE,
-    compute_ess_stan = FALSE),
+  settings_mcmc = list(burn = 1, thin = NULL, ki_prob = 0.9, q_probs = c(0.025, 0.25,
+    0.5, 0.75, 0.975), compute_ess = TRUE, compute_ess_stan = FALSE),
   settings_plots = list(plot_view = FALSE, plot_ggp2 = FALSE, plot_save = FALSE,
-    plot_name = "", plot_path = NULL),
+    plot_save_all = FALSE, plot_name = "", plot_path = NULL),
   settings_table = list(table_view = FALSE, table_save = FALSE, table_name = "",
     table_path = NULL, table_prec = 4),
   settings_urs = list(ur_view = FALSE, ur_save = FALSE, ur_name = "", ur_path = NULL)
@@ -22,29 +22,29 @@ analyse_mcmc_convergence2(
 \item{model_output}{a model as produced from the output of \link[BNMPD:pgas_d]{BNMPD::pgas_d}
 e.g.}
 
-\item{mcmc_sims}{simulated draws/ mcmc output: matrix of dimension "simulated
+\item{mcmc_sims}{simulated draws/MCMC output: matrix of dimension "simulated
 MCMC draws" (rows) x "parameters" (cols)}
 
 \item{states}{state trajectories i.e. particle filter (SMC) output}
 
 \item{model_meta}{a list of two elements:
 \itemize{
-\item{\code{par_val_names = NULL}}{parameter names as used in the pgas
+\item{\code{par_val_names = NULL}}{parameter names as used in the PGAS
 output (col names for \code{mcmcm_sims} e.g.)}
 \item{\code{par_lab_names = NULL}}{names for labels}
 }}
 
 \item{settings_mcmc}{a list of four elements:
 \itemize{
-\item{\code{burn}}{burnin period}
-\item{\code{thin}}{thinning; \code{thin = 10} means every 10th draw is
+\item{\code{burn: }}{burnin period}
+\item{\code{thin: }}{thinning; \code{thin = 10} means every 10th draw is
 excluded}
-\item{\code{ki_prob}}{ probablitlity with which confidence intervals and
+\item{\code{ki_prob: }}{probability with which confidence intervals and
 highest posterior density regions are computed}
-\item{\code{compute_ess}}{logical; if \code{TRUE}, computes the effective sample
+\item{\code{compute_ess: }}{logical; if \code{TRUE}, computes the effective sample
 size}
-\item{\code{compute_ess}}{logical; if \code{TRUE}, computes the effective
-sample sizes in terms of ESS bulk and ESS tail (see the function
+\item{\code{compute_ess_stan: }}{logical; if \code{TRUE}, computes the
+effective sample sizes in terms of ESS bulk and ESS tail (see the function
 documentation of \code{diagnostics_table()} for details)}
 }}
 
@@ -54,8 +54,10 @@ documentation of \code{diagnostics_table()} for details)}
 viewing (RStudio pane)}
 \item{\code{plot_ggp2}}{logical; if \code{TRUE},ggplots are generated (if
 \code{FALSE}, then base plots are used)}
-\item{\code{pplot_save}}{logical; if \code{TRUE}, plots are saved with
-names specified under \code{plot_name} and path given by the argument
+\item{\code{plot_save}}{logical; if \code{TRUE}, plots are saved with
+names equal to parameter name and path given via \code{plot_path}}
+\item{\code{plot_save_all}}{logical; if \code{TRUE}, plots are saved with
+name specified under \code{plot_name} and path given given via
 \code{plot_path}}
 \item{\code{plot_name}}{if \code{plot_save = TRUE}, defines the names of
 the plots as a character vector}
@@ -97,10 +99,10 @@ draws: histogram, trace and autocorrelations plots for all parameters as
 (ggplot2 or base) plots, and an output table summary with posterior mean,
 standard deviation of the parameter under the posterior distribution and
 standard deviation of the posterior mean, confidence bands, HPDs, and
-effective sample sizes (the latter also in the stan variant i.e. ESS bulk and
-tail). Also, update rates of simulated latent state parameters (bootsrap
+effective sample sizes (the latter also in the Stan variant i.e. ESS bulk and
+tail). Also, update rates of simulated latent state parameters (bootstrap
 particle filter/SMC output) are returned. All diagnostics can be saved
-specifiying a directory, name and if a logical value, \code{..._save},
-idnicating whether plots, output diagnostics table or update rates should be
+specifying a directory, name and if a logical value, \code{..._save},
+indicating whether plots, output diagnostics table or update rates should be
 save.
 }

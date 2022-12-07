@@ -2,7 +2,7 @@
 % Please edit documentation in R/99_helper_pgas_output_transformation.R
 \name{pgas_out_2_diagnostics}
 \alias{pgas_out_2_diagnostics}
-\title{Transforms pgas output from \code{pgas_cpp()} or \code{pgas_R()} to a format
+\title{Transforms PGAS output from \code{pgas_cpp()} or \code{pgas_R()} to a format
 suitable for the function
 \code{pmcmcDiagnostics::analyse_mcmc_convergence2()}}
 \usage{
@@ -67,7 +67,7 @@ d=1,...,DD}
 }
 }
 \description{
-Transforms pgas output from \code{pgas_cpp()} or \code{pgas_R()} to a format
+Transforms PGAS output from \code{pgas_cpp()} or \code{pgas_R()} to a format
 suitable for the function
 \code{pmcmcDiagnostics::analyse_mcmc_convergence2()}
 }
