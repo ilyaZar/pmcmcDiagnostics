@@ -41,10 +41,12 @@
 #'     \item{\code{plot_view}}{logical; if \code{TRUE}, plots are returned for
 #'     viewing (RStudio pane)}
 #'     \item{\code{plot_ggp2}}{logical; if \code{TRUE},ggplots are generated (if
-#'   \code{FALSE}, then base plots are used)}
-#'     \item{\code{pplot_save}}{logical; if \code{TRUE}, plots are saved with
-#'     names specified under \code{plot_name} and path given by the argument
-#'   \code{plot_path}}
+#'     \code{FALSE}, then base plots are used)}
+#'     \item{\code{plot_save}}{logical; if \code{TRUE}, plots are saved with
+#'     names equal to parameter name and path given via \code{plot_path}}
+#'     \item{\code{plot_save_all}}{logical; if \code{TRUE}, plots are saved with
+#'     name specified under \code{plot_name} and path given given via
+#'     \code{plot_path}}
 #'     \item{\code{plot_name}}{if \code{plot_save = TRUE}, defines the names of
 #'     the plots as a character vector}
 #'     \item{\code{plot_path}}{if \code{plot_save = TRUE}, defines the path
@@ -93,6 +95,7 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                       settings_plots = list(plot_view = FALSE,
                                                             plot_ggp2 = FALSE,
                                                             plot_save = FALSE,
+                                                            plot_save_all = FALSE,
                                                             plot_name = "",
                                                             plot_path = NULL),
                                       settings_table = list(table_view = FALSE,
@@ -134,7 +137,9 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                num_mcmc >= settings_mcmc$burn)
   posterior_means    <- colMeans(mcmc_sims_after)
 
-  if (settings_plots$plot_view || settings_plots$plot_save) {
+  if (settings_plots$plot_view ||
+      settings_plots$plot_save ||
+      settings_plots$plot_save_all) {
     if (settings_plots$plot_ggp2) {
       generate_ggplot2_all(mcmc_sims_df, mcmc_sims_df_after,
                            settings_mcmc$burn,

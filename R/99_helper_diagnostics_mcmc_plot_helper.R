@@ -88,11 +88,11 @@ generate_plot2 <- function(mcmc_sims,
 #'   \code{mcmcm_sims} e.g.)
 #' @param true_vals true values if a simulation is run; default is NULL and true
 #'   values will not be added for the histogram and trace plots
-#' @param posterior_means posterior means (have to be precomputed and passed
+#' @param posterior_means posterior means (have to be pre-computed and passed
 #'   directly here)
 #' @param plot_num number of parameter or plot
 #'
-#' @return ggplot in 2x2 form displaying the mcmc diagnostics
+#' @return ggplot in 2x2 form displaying the MCMC diagnostics
 generate_ggplot2 <- function(mcmc_sims_df,
                              mcmc_sims_df_after,
                              burn = 0,
@@ -146,10 +146,10 @@ generate_ggplot2 <- function(mcmc_sims_df,
   }
 
   acf_plot <- ggplot2::ggplot(data = acfs_df,
-                              mapping = ggplot2::aes(x = .data$lag,
-                                                     y = .data$acf)) +
+                              mapping = ggplot2::aes(x = .data$`acfs.lag`,
+                                                     y = .data$`acfs.acf`)) +
     ggplot2::geom_hline(ggplot2::aes(yintercept = 0)) +
-    ggplot2::geom_segment(mapping = ggplot2::aes(xend = lag, yend = 0)) +
+    ggplot2::geom_segment(mapping = ggplot2::aes(xend = `acfs.lag`, yend = 0)) +
     ggplot2::xlab("lag (after burn-in)") +
     ggplot2::ggtitle("autocorrelation")
 
@@ -165,9 +165,14 @@ generate_ggplot2_all <- function(mcmc_sims_df,
                                  posterior_means,
                                  settings_plots,
                                  lab_names) {
-  browser()
   num_par <- length(par_names)
+  list_of_plots <- vector("list", num_par)
+  browser()
   for (i in 1:num_par) {
+    fn_tmp <- paste(settings_plots$plot_name, "_",
+                    par_names[i], ".eps", sep = "")
+    ln_tmp <- grid::textGrob(lab_names[i],
+                             gp = grid::gpar(fontsize = 20, font = 3))
     plot_returned <- generate_ggplot2(mcmc_sims_df = mcmc_sims_df,
                                       mcmc_sims_df_after=mcmc_sims_df_after,
                                       burn = burn,
@@ -178,36 +183,34 @@ generate_ggplot2_all <- function(mcmc_sims_df,
                                       posterior_means = posterior_means,
                                       plot_num = i)
     if (settings_plots$plot_view) {
-      plot_current <- gridExtra::grid.arrange(plot_returned[[1]],
-                                              plot_returned[[2]],
-                                              plot_returned[[3]],
-                                              plot_returned[[4]],
-                                              nrow = 2,
-                                              top = grid::textGrob(lab_names[i],
-                                                                   gp = grid::gpar(fontsize = 20, font = 3)))
-      print(plot_current)
+      gridExtra::grid.arrange(plot_returned[[1]],
+                              plot_returned[[2]],
+                              plot_returned[[3]],
+                              plot_returned[[4]],
+                              nrow = 2,
+                              top = ln_tmp)
     }
     if (settings_plots$plot_save) {
-      plot_current <- gridExtra::arrangeGrob(plot_returned[[1]],
-                                             plot_returned[[2]],
-                                             plot_returned[[3]],
-                                             plot_returned[[4]],
-                                             nrow = 2,
-                                             top = grid::textGrob(lab_names[i],
-                                                                  gp = grid::gpar(fontsize = 20, font = 3)))
-      ggplot2::ggsave(filename = paste(settings_plots$plot_name, "_", par_names[i], ".pdf", sep = ""),
-                      plot = plot_current,
+      current_plot_name <- get_plot_name(settings_plots,
+                                         par_names[i],
+                                         all = FALSE)
+      list_of_plots[[i]] <- gridExtra::arrangeGrob(plot_returned[[1]],
+                                                   plot_returned[[2]],
+                                                   plot_returned[[3]],
+                                                   plot_returned[[4]],
+                                                   nrow = 2,
+                                                   top = ln_tmp)
+      ggplot2::ggsave(filename = current_plot_name,
+                      plot = list_of_plots[[i]],
                       path = settings_plots$plot_path,
                       device = "eps",
                       width = 18,
                       height = 10.5,
                       units = "cm")
-      current_plot_name <- file.path(settings_plots$plot_path,
-                                     paste(settings_plots$plot_name,"_",
-                                           par_names[i],
-                                           ".pdf",
-                                           sep = ""))
       print(paste("Saved plots in: ", current_plot_name))
+    }
+    if (settings_plots$plot_save_all) {
+      stop("Feature not yet implemented.")
     }
   }
 }
@@ -221,28 +224,29 @@ generate_plot_all <- function(mcmc_sims,
                               posterior_means,
                               settings_plots,
                               lab_names) {
-  num_par <- length(par_names)
-  for (i in 1:num_par) {
-    if (settings_plots$plot_view) {
-      plot_returned <- generate_plot2(mcmc_sims = mcmc_sims,
-                                      mcmc_sims_after = mcmc_sims_after,
-                                      burn = burn,
-                                      thin = thin,
-                                      num_mcmc = num_mcmc,
-                                      par_names = par_names,
-                                      par_names_plots = lab_names,
-                                      true_vals = true_vals,
-                                      posterior_means = posterior_means,
-                                      plot_num = i)
+  num_par   <- length(par_names)
+  if (settings_plots$plot_view) {
+    for (i in 1:num_par) {
+      generate_plot2(mcmc_sims = mcmc_sims,
+                     mcmc_sims_after = mcmc_sims_after,
+                     burn = burn,
+                     num_mcmc = num_mcmc,
+                     par_names = par_names,
+                     par_names_plots = lab_names,
+                     true_vals = true_vals,
+                     posterior_means = posterior_means,
+                     plot_num = i)
+
     }
-    if (settings_plots$plot_save) {
-      current_plot_name <- file.path(settings_plots$plot_path,
-                                     paste(settings_plots$plot_name, "_",
-                                           par_names[i],
-                                           ".pdf",
-                                           sep = ""))
+  }
+  if (settings_plots$plot_save) {
+    for (i in 1:num_par) {
+      current_plot_name <- get_plot_name(settings_plots,
+                                         par_names[i],
+                                         all = FALSE)
       grDevices::setEPS()
-      grDevices::postscript(current_plot_name, width = 18, height = 10.5)
+      grDevices::postscript(current_plot_name, width = 18,
+                            height = 10.5)
       generate_plot2(mcmc_sims = mcmc_sims,
                      mcmc_sims_after = mcmc_sims_after,
                      burn = burn,
@@ -256,4 +260,39 @@ generate_plot_all <- function(mcmc_sims,
       print(paste("Saved plots in: ", current_plot_name))
     }
   }
+  if (settings_plots$plot_save_all) {
+    current_plot_name_all <- get_plot_name(settings_plots, all = TRUE)
+    grDevices::setEPS()
+    grDevices::postscript(current_plot_name_all,
+                          width = 18, height = 10.5,
+                          onefile = TRUE)
+    for (i in 1:num_par) {
+      generate_plot2(mcmc_sims = mcmc_sims,
+                     mcmc_sims_after = mcmc_sims_after,
+                     burn = burn,
+                     num_mcmc = num_mcmc,
+                     par_names = par_names,
+                     par_names_plots = lab_names,
+                     true_vals = true_vals,
+                     posterior_means = posterior_means,
+                     plot_num = i)
+      print(paste("Saving plots to big pdf file: ",
+                  i, " out of ", num_par, "..."))
+    }
+    grDevices::dev.off()
+  }
+}
+get_plot_name <- function(settings, sub_name, all) {
+  if (all) {
+    file.path(settings$plot_path,
+              paste(settings$plot_name,
+                    ".eps",
+                    sep = ""))
+  } else {
+    file.path(settings$plot_path,
+              paste(sub_name,
+                    ".eps",
+                    sep = ""))
+  }
+
 }
