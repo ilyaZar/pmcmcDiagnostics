@@ -110,9 +110,13 @@ diagnostics_table <- function(num_par,
                            table_name = settings_table$table_name)
   }
   if (settings_table$table_save) {
+    if (!is.null(settings_table$table_prec)) {
+      summary_results <- round(summary_results,
+                               digits = settings_table$table_prec)
+    }
     write_diagnostics_table(summary_results, par_names,
                             settings_table$table_path,
-                            settings_table$table_name)
+                            paste0("SUMMARY_", settings_table$table_name))
   }
   ids <- compute_id_parts(summary_results, true_vals, q_probs)
   part_1 <- summary_results[, ids[["id_part1"]]]
