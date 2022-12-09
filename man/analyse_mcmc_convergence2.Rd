@@ -2,15 +2,16 @@
 % Please edit documentation in R/01_mcmc_output_diagnostics.R
 \name{analyse_mcmc_convergence2}
 \alias{analyse_mcmc_convergence2}
-\title{Dispays output diagnostics}
+\title{Displays output diagnostics}
 \usage{
 analyse_mcmc_convergence2(
   model_output = NULL,
   mcmc_sims = NULL,
   states = NULL,
   model_meta = list(par_val_names = NULL, par_lab_names = NULL),
-  settings_mcmc = list(burn = 1, thin = NULL, ki_prob = 0.9, q_probs = c(0.025, 0.25,
-    0.5, 0.75, 0.975), compute_ess = TRUE, compute_ess_stan = FALSE),
+  settings_mcmc = list(burn = round(nrow(mcmc_sims)/2, digits = 0), thin = NULL, ki_prob
+    = 0.9, q_probs = c(0.025, 0.25, 0.5, 0.75, 0.975), compute_ess = TRUE,
+    compute_ess_stan = TRUE),
   settings_plots = list(plot_view = FALSE, plot_ggp2 = FALSE, plot_save = FALSE,
     plot_save_all = FALSE, plot_name = "", plot_path = NULL),
   settings_table = list(table_view = FALSE, table_save = FALSE, table_name = "",
@@ -29,14 +30,14 @@ MCMC draws" (rows) x "parameters" (cols)}
 
 \item{model_meta}{a list of two elements:
 \itemize{
-\item{\code{par_val_names = NULL}}{parameter names as used in the PGAS
+\item{\code{par_val_names = NULL: }}{parameter names as used in the PGAS
 output (col names for \code{mcmcm_sims} e.g.)}
-\item{\code{par_lab_names = NULL}}{names for labels}
+\item{\code{par_lab_names = NULL: }}{names for labels}
 }}
 
 \item{settings_mcmc}{a list of four elements:
 \itemize{
-\item{\code{burn: }}{burnin period}
+\item{\code{burn: }}{burnin period - defaults to half of the MCMC draws}
 \item{\code{thin: }}{thinning; \code{thin = 10} means every 10th draw is
 excluded}
 \item{\code{ki_prob: }}{probability with which confidence intervals and
@@ -50,43 +51,43 @@ documentation of \code{diagnostics_table()} for details)}
 
 \item{settings_plots}{a list of five:
 \itemize{
-\item{\code{plot_view}}{logical; if \code{TRUE}, plots are returned for
+\item{\code{plot_view: }}{logical; if \code{TRUE}, plots are returned for
 viewing (RStudio pane)}
-\item{\code{plot_ggp2}}{logical; if \code{TRUE},ggplots are generated (if
+\item{\code{plot_ggp2: }}{logical; if \code{TRUE},ggplots are generated (if
 \code{FALSE}, then base plots are used)}
-\item{\code{plot_save}}{logical; if \code{TRUE}, plots are saved with
+\item{\code{plot_save: }}{logical; if \code{TRUE}, plots are saved with
 names equal to parameter name and path given via \code{plot_path}}
-\item{\code{plot_save_all}}{logical; if \code{TRUE}, plots are saved with
+\item{\code{plot_save_all: }}{logical; if \code{TRUE}, plots are saved with
 name specified under \code{plot_name} and path given given via
 \code{plot_path}}
-\item{\code{plot_name}}{if \code{plot_save = TRUE}, defines the names of
+\item{\code{plot_name: }}{if \code{plot_save = TRUE}, defines the names of
 the plots as a character vector}
-\item{\code{plot_path}}{if \code{plot_save = TRUE}, defines the path
+\item{\code{plot_path: }}{if \code{plot_save = TRUE}, defines the path
 where plots are stored as a character}
 }}
 
 \item{settings_table}{a list of five:
 \itemize{
-\item{\code{table_view}}{ logical; if \code{TRUE}, output table can be
+\item{\code{table_view: }}{logical; if \code{TRUE}, output table can be
 viewed (RStudio pane)}
-\item{\code{table_save}}{logical; if \code{TRUE}, output tables are
+\item{\code{table_save: }}{logical; if \code{TRUE}, output tables are
 saved}
-\item{\code{table_name}}{if \code{table_view = TRUE}, defines the name of
+\item{\code{table_name: }}{if \code{table_view = TRUE}, defines the name of
 the output table as a character}
-\item{\code{table_path}}{ if \code{table_view = TRUE}, defines the path
+\item{\code{table_path: }}{ if \code{table_view = TRUE}, defines the path
 where output table is stored as character vector}
-\item{\code{table_prec}}{if \code{table_view = TRUE}, rounding digits for
+\item{\code{table_prec: }}{if \code{table_view = TRUE}, rounding digits for
 values of the output table}
 }}
 
 \item{settings_urs}{a list of four:
 \itemize{
-\item{\code{ur_view}}{logical; if \code{TRUE} are returned for viewing
+\item{\code{ur_view: }}{logical; if \code{TRUE} are returned for viewing
 (RStudio pane)}
-\item{\code{ur_save}}{logical; if \code{TRUE} update rates are saved}
-\item{\code{ur_name}}{if \code{ur_save == TRUE}, specifies name of the
+\item{\code{ur_save: }}{logical; if \code{TRUE} update rates are saved}
+\item{\code{ur_name: }}{if \code{ur_save == TRUE}, specifies name of the
 update rate plot}
-\item{\code{ur_path}}{if \code{ur_save == TRUE}, specifies path of the
+\item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
 update rate plot}
 }}
 }
@@ -100,9 +101,14 @@ draws: histogram, trace and autocorrelations plots for all parameters as
 standard deviation of the parameter under the posterior distribution and
 standard deviation of the posterior mean, confidence bands, HPDs, and
 effective sample sizes (the latter also in the Stan variant i.e. ESS bulk and
-tail). Also, update rates of simulated latent state parameters (bootstrap
-particle filter/SMC output) are returned. All diagnostics can be saved
-specifying a directory, name and if a logical value, \code{..._save},
-indicating whether plots, output diagnostics table or update rates should be
-save.
+tail).
+
+Moreover, update rates of simulated latent state processes (from e.g. a
+bootstrap particle filter or general SMC output) are returned.
+}
+\details{
+All diagnostics (plots/tables) can be saved when specifying a directory name
+and setting the corresponding logical flag \code{XXX_save = TRUE} (where
+\code{XXX} can be \code{plot}, \code{table} etc., indicating whether plots,
+output diagnostics tables or update rates should be saved).
 }
