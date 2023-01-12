@@ -118,14 +118,13 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                   (!is.null(mcmc_sims) &&
                      !is.null(states))))
 
-  if (class(model_output) == "pmcmc") {
-    states <- model_output$x
-  }
+  if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
+
   par_names <- unname(unlist(model_meta$par_val_names))
   lab_names <- unname(unlist(model_meta$par_lab_names))
   true_vals <- get_true_vals(list_true_vals = model_output$true_vals)
 
-  mcmc_sims <- model_out2sims(model_output, par_names)
+  mcmc_sims <- model_out2sims(model_output, lab_names)
   num_mcmc <- dim(mcmc_sims)[1]
   num_par  <- dim(mcmc_sims)[2]
 
@@ -152,7 +151,7 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                            settings_mcmc$burn,
                            settings_mcmc$thin,
                            num_mcmc,
-                           par_names, true_vals,
+                           lab_names, true_vals,
                            posterior_means,
                            settings_plots,
                            lab_names)
@@ -160,35 +159,39 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
       generate_plot_all(mcmc_sims, mcmc_sims_after,
                         settings_mcmc$burn, settings_mcmc$thin,
                         num_mcmc,
-                        par_names, true_vals,
+                        lab_names, true_vals,
                         posterior_means,
                         settings_plots,
                         lab_names)
     }
   }
-  out <- NULL
+  out_mcmc <- NULL
   if (settings_table$table_view || settings_table$table_save) {
-    out <- diagnostics_table(num_par = num_par,
-                             par_names = par_names,
-                             mcmc_sims = mcmc_sims,
-                             mcmc_sims_after = mcmc_sims_after,
-                             burn = settings_mcmc$burn,
-                             num_mcmc = num_mcmc,
-                             posterior_means = posterior_means,
-                             start_vals  = start_vals ,
-                             true_vals = true_vals,
-                             ki_prob = settings_mcmc$ki_prob,
-                             q_probs = settings_mcmc$q_probs,
-                             ESS_STANDARD = settings_mcmc$compute_ess,
-                             ESS_STAN = settings_mcmc$compute_ess_stan,
-                             settings_table)
+    out_mcmc <- diagnostics_table(num_par = num_par,
+                                  par_names = lab_names,
+                                  mcmc_sims = mcmc_sims,
+                                  mcmc_sims_after = mcmc_sims_after,
+                                  burn = settings_mcmc$burn,
+                                  num_mcmc = num_mcmc,
+                                  posterior_means = posterior_means,
+                                  start_vals  = start_vals ,
+                                  true_vals = true_vals,
+                                  ki_prob = settings_mcmc$ki_prob,
+                                  q_probs = settings_mcmc$q_probs,
+                                  ESS_STANDARD = settings_mcmc$compute_ess,
+                                  ESS_STAN = settings_mcmc$compute_ess_stan,
+                                  settings_table)
   }
 
+  out_urs <- NULL
   if (settings_urs$ur_view || settings_urs$ur_save) {
-    get_update_rates(states, settings_urs, settings_plots)
+    out_urs <- get_update_rates(states, settings_urs, settings_plots)
   }
 
-  if (is.null(out)) warning(paste0("No summary results computed, ",
-                                   "nothing to return ..."))
-  return(out)
+  if (is.null(out_mcmc)) warning(paste0("No MCMC summary results computed, ",
+                                        "nothing to return ..."))
+  if (is.null(out_urs)) warning(paste0("No update rates computed, ",
+                                       "nothing to return ..."))
+  return(list(out_mcmc = out_mcmc,
+              out_urs = out_urs))
 }
