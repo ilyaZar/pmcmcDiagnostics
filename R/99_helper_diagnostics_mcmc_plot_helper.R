@@ -32,6 +32,7 @@ generate_plot2 <- function(mcmc_sims,
                            true_vals = NULL,
                            posterior_means,
                            plot_num) {
+  TRUE_VAL_AVAIL <- !is.null(true_vals) && !is.null(true_vals)
 
   graphics::par(mfrow = c(2, 2),
                 oma = c(0,0,5,0))
@@ -40,7 +41,7 @@ generate_plot2 <- function(mcmc_sims,
                  xlab = "values (after burn-in)",
                  main = "posterior density histogram")
   graphics::abline(v = posterior_means[plot_num], col = "red")
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     graphics::abline(v = true_vals[plot_num], col = "green")
   }
 
@@ -49,7 +50,7 @@ generate_plot2 <- function(mcmc_sims,
                  ylab = "sampled values",
                  main = paste("trace after burn-in", burn, sep = ": "))
   graphics::abline(h = posterior_means[plot_num], col = "red")
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     graphics::abline(h = true_vals[plot_num], col = "green")
   }
 
@@ -62,7 +63,7 @@ generate_plot2 <- function(mcmc_sims,
                  ylab = "sampled values",
                  main = "complete trace (no burn-in)")
   graphics::abline(h = posterior_means[plot_num], col = "red")
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     graphics::abline(h = true_vals[plot_num], col = "green")
   }
   graphics::mtext(par_names_plots[plot_num],
@@ -102,6 +103,7 @@ generate_ggplot2 <- function(mcmc_sims_df,
                              true_vals = NULL,
                              posterior_means,
                              plot_num) {
+  TRUE_VAL_AVAIL <- !is.null(true_vals) && !is.na(true_vals)
   par_to_plot <- parse(text = par_names[plot_num])
   acfs    <- stats::acf(mcmc_sims_df_after[par_names[plot_num]], plot = FALSE)
   acfs_df <- with(acfs, data.frame(acfs$lag, acfs$acf))
@@ -115,7 +117,7 @@ generate_ggplot2 <- function(mcmc_sims_df,
     ggplot2::geom_vline(xintercept = posterior_means[plot_num], colour = "red") +
     ggplot2::xlab("values (after burn-in)") +
     ggplot2::ggtitle("posterior density histogram")
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     hist_plot <- hist_plot +
       ggplot2::geom_vline(xintercept = true_vals[plot_num], colour = "green")
   }
@@ -127,7 +129,7 @@ generate_ggplot2 <- function(mcmc_sims_df,
     ggplot2::ylab("sampled values") +
     ggplot2::xlab("mcmc iterations") +
     ggplot2::ggtitle("complete trace (no burn-in)")
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     trace_plot_full <- trace_plot_full +
       ggplot2::geom_hline(yintercept = true_vals[plot_num], colour = "green")
   }
@@ -140,7 +142,7 @@ generate_ggplot2 <- function(mcmc_sims_df,
     ggplot2::ylab("sampled values") +
     ggplot2::xlab("mcmc iterations (after burn-in)") +
     ggplot2::ggtitle(paste("trace after burn-in", burn, sep = ": "))
-  if (!is.null(true_vals)) {
+  if (TRUE_VAL_AVAIL) {
     trace_plot_full <- trace_plot_full +
       ggplot2::geom_hline(yintercept = true_vals[plot_num], colour = "green")
   }
@@ -149,7 +151,8 @@ generate_ggplot2 <- function(mcmc_sims_df,
                               mapping = ggplot2::aes(x = .data$`acfs.lag`,
                                                      y = .data$`acfs.acf`)) +
     ggplot2::geom_hline(ggplot2::aes(yintercept = 0)) +
-    ggplot2::geom_segment(mapping = ggplot2::aes(xend = `acfs.lag`, yend = 0)) +
+    ggplot2::geom_segment(mapping = ggplot2::aes(xend = .data$`acfs.lag`,
+                                                 yend = 0)) +
     ggplot2::xlab("lag (after burn-in)") +
     ggplot2::ggtitle("autocorrelation")
 
@@ -167,10 +170,7 @@ generate_ggplot2_all <- function(mcmc_sims_df,
                                  lab_names) {
   num_par <- length(par_names)
   list_of_plots <- vector("list", num_par)
-  browser()
   for (i in 1:num_par) {
-    fn_tmp <- paste(settings_plots$plot_name, "_",
-                    par_names[i], ".eps", sep = "")
     ln_tmp <- grid::textGrob(lab_names[i],
                              gp = grid::gpar(fontsize = 20, font = 3))
     plot_returned <- generate_ggplot2(mcmc_sims_df = mcmc_sims_df,
@@ -200,9 +200,9 @@ generate_ggplot2_all <- function(mcmc_sims_df,
                                                    plot_returned[[4]],
                                                    nrow = 2,
                                                    top = ln_tmp)
-      ggplot2::ggsave(filename = current_plot_name,
+      ggplot2::ggsave(filename = basename(current_plot_name),
                       plot = list_of_plots[[i]],
-                      path = settings_plots$plot_path,
+                      path = dirname(current_plot_name),
                       device = "eps",
                       width = 18,
                       height = 10.5,
@@ -210,7 +210,7 @@ generate_ggplot2_all <- function(mcmc_sims_df,
       print(paste("Saved plots in: ", current_plot_name))
     }
     if (settings_plots$plot_save_all) {
-      stop("Feature not yet implemented.")
+      warning("Feature not yet implemented.")
     }
   }
 }
@@ -276,7 +276,7 @@ generate_plot_all <- function(mcmc_sims,
                      true_vals = true_vals,
                      posterior_means = posterior_means,
                      plot_num = i)
-      print(paste("Saving plots to big pdf file: ",
+      print(paste("Saving plots to big (.eps) file: ",
                   i, " out of ", num_par, "..."))
     }
     grDevices::dev.off()

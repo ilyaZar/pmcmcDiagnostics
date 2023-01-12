@@ -15,6 +15,8 @@
 #' @param start_vals starting values of the parameter draws
 #' @param true_vals true values with default set to \code{NULL}
 #' @param ki_prob probability mass to cover with confidence bands and HPD
+#' @param q_probs probability quantiles to compute and report (e.g.
+#'    \code{c(0.025, 0.35)} correspond to 2.5% and 35% percent quantiles)
 #' @param ESS_STANDARD logical; if \code{TRUE} computes the effective sample
 #'   size
 #' @param ESS_STAN logical; if \code{TRUE} computes the effective sample
@@ -35,7 +37,11 @@ diagnostics_table <- function(num_par,
                               start_vals,
                               true_vals = NULL,
                               ki_prob,
-                              q_probs,
+                              q_probs = c(0.025,
+                                          0.25,
+                                          0.5,
+                                          0.75,
+                                          0.975),
                               ESS_STANDARD = TRUE,
                               ESS_STAN = TRUE,
                               settings_table) {
@@ -96,12 +102,14 @@ diagnostics_table <- function(num_par,
   summary_results[, 8:9]    <- hpd
   summary_results[, 10]     <- compute_significance_indicator(hpd, true_vals)
   summary_results[, id_qs]  <- qs
+
   id_ess <- (id_qs[length(id_qs)] + 1):ncol(summary_results)
   summary_results[, id_ess] <- compute_ess(mcmc_sims_after,
                                            ESS_STANDARD,
                                            ESS_STAN)
-  if (!is.null(true_vals)) summary_results <- cbind(true_vals = true_vals,
-                                                    summary_results)
+  if (!is.null(true_vals) && !is.na(true_vals)) {
+    summary_results <- cbind(true_vals = true_vals, summary_results)
+  }
   row.names(summary_results) <- unname(par_names)
 
   if (settings_table$table_view) {
@@ -118,7 +126,7 @@ diagnostics_table <- function(num_par,
                             settings_table$table_path,
                             paste0("SUMMARY_", settings_table$table_name))
   }
-  ids <- compute_id_parts(summary_results, true_vals, q_probs)
+  ids <- compute_id_parts(summary_results, q_probs)
   part_1 <- summary_results[, ids[["id_part1"]]]
   part_2 <- summary_results[, ids[["id_part2"]]]
   part_3 <- summary_results[, ids[["id_part3"]]]
@@ -132,7 +140,7 @@ diagnostics_table <- function(num_par,
               quantiles = part_3,
               convergence = part_4))
 }
-compute_id_parts <- function(summary_results, true_vals, q_probs) {
+compute_id_parts <- function(summary_results, q_probs) {
   ncol_sdmean <- which(names(summary_results) == "sd_mean")
   ncol_cnthpd <- which(names(summary_results) == "contained_HPD")
   ncol_qprobs <- ncol_cnthpd + length(q_probs)
@@ -336,7 +344,7 @@ verify_CIs <- function(CI, HPD) {
 #'   if that is not the case for both CI and HPD
 #' @export
 compute_significance_indicator <- function(int, true_vals) {
-  if (!is.null(true_vals)) {
+  if (!is.null(true_vals) && !is.na(true_vals)) {
     contained_CI  <-  (int[, 1] <= true_vals) & (int[, 2] >= true_vals)
   } else {
     contained_CI  <- sign(int[, 1]) == sign(int[, 2])

@@ -15,7 +15,7 @@ diagnostics_table(
   start_vals,
   true_vals = NULL,
   ki_prob,
-  q_probs,
+  q_probs = c(0.025, 0.25, 0.5, 0.75, 0.975),
   ESS_STANDARD = TRUE,
   ESS_STAN = TRUE,
   settings_table
@@ -41,6 +41,9 @@ diagnostics_table(
 \item{true_vals}{true values with default set to \code{NULL}}
 
 \item{ki_prob}{probability mass to cover with confidence bands and HPD}
+
+\item{q_probs}{probability quantiles to compute and report (e.g.
+\code{c(0.025, 0.35)} correspond to 2.5\% and 35\% percent quantiles)}
 
 \item{ESS_STANDARD}{logical; if \code{TRUE} computes the effective sample
 size}
