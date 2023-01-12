@@ -14,7 +14,6 @@ BugReports: https://github.com/useRaddictIZ/pmcmcDiagnostics
 Depends: 
     R (>= 3.6)
 Imports: 
-    Rmpfr,
     stats,
     coda,
     mcmcse,
@@ -22,16 +21,12 @@ Imports:
     HDInterval,
     magrittr (>= 1.5),
     ggplot2 (>= 3.0),
-    RColorBrewer,
     grDevices,
     graphics,
     gridExtra,
-    gtools,
     crayon,
-    readr,
     utils,
-    rlang,
-    devtools (>= 2.2.2.9000)
+    rlang
 Suggests: 
     testthat (>= 2.3.2)
 Encoding: UTF-8
