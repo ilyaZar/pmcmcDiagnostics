@@ -10,15 +10,11 @@
 #'   and time dimension specified under states_in_cols)
 #' @param states_in_cols logical with default TRUE; if TRUE, mcmc draws are
 #'   given in rows and time dimension (i.e. number of states) in columns
-#' @param return_values logical; if TRUE, the update rates are returned as
-#'   values rather than a plot
-#'
-#' @return object of type matplot displaying the udpate rates of particle
-#'   trajectories
+
+#' @return a matrix of update rates of appropriate dimensions
 #' @export
-analyse_states_ur <- function(trajectories,
-                              states_in_cols = TRUE,
-                              return_values = FALSE) {
+compute_states_ur <- function(trajectories,
+                              states_in_cols = TRUE) {
   dim_trajs <- length(dim(trajectories))
   if (dim_trajs == 4) {
     NN <- dim(trajectories)[4]
@@ -27,11 +23,11 @@ analyse_states_ur <- function(trajectories,
   }
   if (states_in_cols) {
     num_states <- dim(trajectories)[1]
-    num_comps <-  dim(trajectories)[2]
+    # num_comps <-  dim(trajectories)[2]
     num_draws <-  dim(trajectories)[3]
   } else if (!states_in_cols) {
     num_states <- dim(trajectories)[2]
-    num_comps <-  dim(trajectories)[1]
+    # num_comps <-  dim(trajectories)[1]
     num_draws <-  dim(trajectories)[3]
     if (dim_trajs == 4) {
       trajectories <- aperm(trajectories, c(2, 1, 3, 4))
@@ -39,35 +35,46 @@ analyse_states_ur <- function(trajectories,
       trajectories <- aperm(trajectories, c(2, 1, 3))
     }
   }
-
+  urs_all <- urs_big(trajectories, NN, num_states, num_draws)
+  return(urs_all)
+}
+adjust_trajectories <- function(traj_mat, num_draws) {
+  check_components <- matrix(FALSE, nrow = num_draws,
+                             ncol = ncol(traj_mat))
+  for (mm in 1:num_draws) {
+    check_components[mm, ] <- apply(traj_mat[, , mm, drop = FALSE], 2,
+                                    function(x){length(unique(x)) == 1})
+  }
+  keep_cmp <- which(!apply(check_components, 2, function(x){all(x == TRUE)}))
+  if (length(keep_cmp) == 0) stop("No variation in states; impoosible ...")
+  traj_mat[, keep_cmp, ]
+}
+urs_big <- function(trajectories, NN, num_states, num_draws) {
   urs_all   <- matrix(0, nrow = num_states, ncol = NN)
-
   for (n in 1:NN) {
+    tmp_traj  <- adjust_trajectories(trajectories[ , , , n],
+                                     num_draws)
+    num_comps <- dim(tmp_traj)[2]
     urs_per_n <- matrix(0, nrow = num_states, ncol = num_comps)
     for (d in 1:num_comps) {
-      num_unique_states <- apply(trajectories[ ,d , ,n], MARGIN = 1, unique)
-      #apply(trajectories[ ,d , ,n], MARGIN = 2, unique)
-      num_unique_states <- unlist(lapply(num_unique_states, length))
-      urs_per_n[, d] <- num_unique_states/num_draws
+      urs_per_n[, d] <- urs_small(tmp_traj[ , d, ], num_draws)
     }
     unique_states <- apply(urs_per_n, MARGIN = 1,
-                               function(x) {Reduce(equal_values, x)})
+                           function(x) {Reduce(equal_values, x)})
     test_computations <- any(unique_states != urs_per_n[, 1])
-    # browser()
     if (test_computations) {
       stop("Numerical problems during update rate computations!")
     } else {
       urs_all[, n] <- unique_states
     }
   }
-
-  # browser()
-  # urs[1, ] <- min(urs[2:num_states, 1])
-  # .colMeans(m = num_states, n = num_comps)
-  if (return_values) {
-    return(urs_all)
-  }
-  graphics::matplot(urs_all , type = "l")
+  return(urs_all)
+}
+urs_small <- function(traj_mat, num_draws) {
+  num_unique_states <- apply(traj_mat,
+                             MARGIN = 1,
+                             function(x) {length(unique(x))/ num_draws},
+                             simplify = TRUE)
 }
 #' To be used within \code{Reduce()}-constructs to check if values are equal
 #'
@@ -110,6 +117,7 @@ burn_and_thin <- function(draws, burnin, thin = NULL) {
   return(mcmc_sims_after)
 }
 get_true_vals <- function(list_true_vals) {
+  if (is.null(list_true_vals) || is.na(list_true_vals)) return(NA)
   names_pars <- names(list_true_vals)
 
   DD <- nrow(list_true_vals[["sig_sq"]])

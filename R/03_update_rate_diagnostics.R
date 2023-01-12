@@ -9,17 +9,19 @@
 #' @return side effect function; plotting and/or saving
 #' @export
 get_update_rates <- function(states, settings_urs, settings_plots) {
+  urs <- compute_states_ur(trajectories = states, states_in_cols = TRUE)
   if (settings_urs$ur_view) {
     graphics::par(mfrow = c(1, 1))
-    analyse_states_ur(trajectories = states)
+    graphics::matplot(urs , type = "l")
   }
   if (settings_urs$ur_save) {
     current_plot_name <- file.path(settings_plots$plot_path,
                                    paste0("00_", settings_urs$ur_name, ".pdf"))
     grDevices::setEPS()
     grDevices::postscript(current_plot_name, width = 9, height = 5.25)
-    analyse_states_ur(trajectories = states)
+    graphics::matplot(urs , type = "l")
     grDevices::dev.off()
     print(paste("Saved update rate plot in: ", current_plot_name))
   }
+  return(urs)
 }
