@@ -20,7 +20,7 @@ analyse_mcmc_convergence2(
 )
 }
 \arguments{
-\item{model_output}{a model as produced from the output of \link[BNMPD:pgas_d]{BNMPD::pgas_d}
+\item{model_output}{a model as produced from the output of \link[BNMPD:pgas]{BNMPD::pgas}
 e.g.}
 
 \item{mcmc_sims}{simulated draws/MCMC output: matrix of dimension "simulated

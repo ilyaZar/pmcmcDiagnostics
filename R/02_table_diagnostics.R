@@ -332,8 +332,8 @@ verify_CIs <- function(CI, HPD) {
 #' Check whether CI and HPD contain true values or zeros.
 #'
 #' The former case is for simulations (with \code{true_vals} being not
-#' \code{NULL}) and the latter checks for significance i.e. if 0 is covered or
-#' not.
+#' \code{NULL} or \code{NA}) and the latter checks for significance i.e. if 0 is
+#' covered or not.
 #'
 #' @param int a matrix of two columns with upper/lower confidence bands as
 #'   produced by [compute_ci] or [compute_hpd]
@@ -345,11 +345,11 @@ verify_CIs <- function(CI, HPD) {
 #' @export
 compute_significance_indicator <- function(int, true_vals) {
   if (!is.null(true_vals) && !is.na(true_vals)) {
-    contained_CI  <-  (int[, 1] <= true_vals) & (int[, 2] >= true_vals)
+    ind_CI <-  (int[, 1] <= true_vals) & (int[, 2] >= true_vals)
   } else {
-    contained_CI  <- sign(int[, 1]) == sign(int[, 2])
+    ind_CI <- sign(int[, 1]) == sign(int[, 2]) & !(int[, 1] == int[, 2])
   }
-  return(contained_CI)
+  return(ind_CI)
 }
 #' Call \code{View} on \code{data.frame} of MCMC convergence diagnostics
 #'

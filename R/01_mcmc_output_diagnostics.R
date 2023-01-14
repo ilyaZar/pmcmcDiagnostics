@@ -18,7 +18,7 @@
 #' \code{XXX} can be \code{plot}, \code{table} etc., indicating whether plots,
 #' output diagnostics tables or update rates should be saved).
 #'
-#' @param model_output a model as produced from the output of [BNMPD::pgas_d]
+#' @param model_output a model as produced from the output of [BNMPD::pgas]
 #'   e.g.
 #' @param mcmc_sims simulated draws/MCMC output: matrix of dimension "simulated
 #'   MCMC draws" (rows) x "parameters" (cols)

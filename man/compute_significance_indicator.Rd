@@ -19,6 +19,6 @@ if that is not the case for both CI and HPD
 }
 \description{
 The former case is for simulations (with \code{true_vals} being not
-\code{NULL}) and the latter checks for significance i.e. if 0 is covered or
-not.
+\code{NULL} or \code{NA}) and the latter checks for significance i.e. if 0 is
+covered or not.
 }
