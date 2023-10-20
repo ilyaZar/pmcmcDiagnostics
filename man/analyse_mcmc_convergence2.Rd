@@ -15,12 +15,11 @@ analyse_mcmc_convergence2(
   settings_plots = list(plot_view = FALSE, plot_ggp2 = FALSE, plot_save = FALSE,
     plot_save_all = FALSE, plot_name = "", plot_path = NULL),
   settings_table = list(table_view = FALSE, table_save = FALSE, table_name = "",
-    table_path = NULL, table_prec = 4),
-  settings_urs = list(ur_view = FALSE, ur_save = FALSE, ur_name = "", ur_path = NULL)
+    table_path = NULL, table_prec = 4)
 )
 }
 \arguments{
-\item{model_output}{a model as produced from the output of \link[BNMPD:pgas]{BNMPD::pgas}
+\item{model_output}{a model as produced from the output of \code{\link[BNMPD:pgas]{BNMPD::pgas()}}
 e.g.}
 
 \item{mcmc_sims}{simulated draws/MCMC output: matrix of dimension "simulated
@@ -78,17 +77,6 @@ the output table as a character}
 where output table is stored as character vector}
 \item{\code{table_prec: }}{if \code{table_view = TRUE}, rounding digits for
 values of the output table}
-}}
-
-\item{settings_urs}{a list of four:
-\itemize{
-\item{\code{ur_view: }}{logical; if \code{TRUE} are returned for viewing
-(RStudio pane)}
-\item{\code{ur_save: }}{logical; if \code{TRUE} update rates are saved}
-\item{\code{ur_name: }}{if \code{ur_save == TRUE}, specifies name of the
-update rate plot}
-\item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
-update rate plot}
 }}
 }
 \value{

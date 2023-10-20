@@ -18,7 +18,7 @@
 #' \code{XXX} can be \code{plot}, \code{table} etc., indicating whether plots,
 #' output diagnostics tables or update rates should be saved).
 #'
-#' @param model_output a model as produced from the output of [BNMPD::pgas]
+#' @param model_output a model as produced from the output of [BNMPD::pgas()]
 #'   e.g.
 #' @param mcmc_sims simulated draws/MCMC output: matrix of dimension "simulated
 #'   MCMC draws" (rows) x "parameters" (cols)
@@ -71,16 +71,6 @@
 #'     \item{\code{table_prec: }}{if \code{table_view = TRUE}, rounding digits for
 #'     values of the output table}
 #'   }
-#' @param settings_urs a list of four:
-#'   \itemize{
-#'     \item{\code{ur_view: }}{logical; if \code{TRUE} are returned for viewing
-#'     (RStudio pane)}
-#'     \item{\code{ur_save: }}{logical; if \code{TRUE} update rates are saved}
-#'     \item{\code{ur_name: }}{if \code{ur_save == TRUE}, specifies name of the
-#'     update rate plot}
-#'     \item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
-#'     update rate plot}
-#'   }
 #' @return nothing but plots and table are saved and displayed upon request
 #' @export
 analyse_mcmc_convergence2 <- function(model_output = NULL,
@@ -109,16 +99,10 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                                             table_save = FALSE,
                                                             table_name = "",
                                                             table_path = NULL,
-                                                            table_prec = 4),
-                                      settings_urs = list(ur_view = FALSE,
-                                                          ur_save = FALSE,
-                                                          ur_name = "",
-                                                          ur_path = NULL)) {
+                                                            table_prec = 4)) {
   stopifnot(any(!is.null(model_output) ||
                   (!is.null(mcmc_sims) &&
                      !is.null(states))))
-
-  if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
 
   par_names <- unname(unlist(model_meta$par_val_names))
   lab_names <- unname(unlist(model_meta$par_lab_names))
@@ -182,16 +166,43 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
                                   ESS_STAN = settings_mcmc$compute_ess_stan,
                                   settings_table)
   }
-
-  out_urs <- NULL
-  if (settings_urs$ur_view || settings_urs$ur_save) {
-    out_urs <- get_update_rates(states, settings_urs, settings_plots)
-  }
-
   if (is.null(out_mcmc)) warning(paste0("No MCMC summary results computed, ",
                                         "nothing to return ..."))
+
+  return(out_mcmc)
+}
+#' Compute update rates for Particle MCMC states
+#'
+#' Makes use of the output of [BNMPD::pgas()], see first argument.
+#'
+#' @inheritParams analyse_mcmc_convergence2
+#' @param settings_urs a list of four:
+#'   \itemize{
+#'     \item{\code{ur_view: }}{logical; if \code{TRUE} are returned for viewing
+#'     (RStudio pane)}
+#'     \item{\code{ur_save: }}{logical; if \code{TRUE} update rates are saved}
+#'     \item{\code{ur_name: }}{if \code{ur_save == TRUE}, specifies name of the
+#'     update rate plot}
+#'     \item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
+#'     update rate plot}
+#'   }
+#'
+#' @return the update rates, and possibly side effects such as plots saved in a
+#'   directory passed via `settings_urs$ur_path`
+#' @export
+analyse_states_convergence <- function(model_output = NULL,
+                                       settings_urs = list(ur_view = FALSE,
+                                                           ur_save = FALSE,
+                                                           ur_name = "",
+                                                           ur_path = NULL)) {
+  states <- NULL
+  if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
+  if (is.null(states)) stop("Could not parse state values from pmcmc object.")
+  out_urs <- NULL
+  if (settings_urs$ur_view || settings_urs$ur_save) {
+    out_urs <- get_update_rates(states, settings_urs)
+  }
   if (is.null(out_urs)) warning(paste0("No update rates computed, ",
                                        "nothing to return ..."))
-  return(list(out_mcmc = out_mcmc,
-              out_urs = out_urs))
+  return(out_urs)
 }
