@@ -10,8 +10,6 @@ get_update_rates(states, settings_urs, settings_plots)
 \item{states}{latent state values}
 
 \item{settings_urs}{settings used for viewing/saving update rate plots}
-
-\item{settings_plots}{general plot settings}
 }
 \value{
 side effect function; plotting and/or saving
