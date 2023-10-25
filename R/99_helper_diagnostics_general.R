@@ -117,9 +117,44 @@ burn_and_thin <- function(draws, burnin, thin = NULL) {
   return(mcmc_sims_after)
 }
 get_true_vals <- function(list_true_vals) {
-  if (is.null(list_true_vals) || is.na(list_true_vals)) return(NA)
+  if (is.null(list_true_vals) || all(is.na(list_true_vals))) return(NA)
   names_pars <- names(list_true_vals)
-
+  CHECK_DIST_SPECIAL <- grepl("Gen", class(list_true_vals)[1])
+  if (CHECK_DIST_SPECIAL) {
+    out <- get_true_vals_special(list_true_vals, names_pars)
+  } else {
+    out <- get_true_vals_default(list_true_vals, names_pars)
+  }
+  return(out)
+}
+get_true_vals_special <- function(list_true_vals, names_pars) {
+  DD <- nrow(list_true_vals[["sig_sq"]])
+  out <- numeric(0)
+  for(j in names_pars) {
+    for (d in 1:DD) {
+      if (is.null(list_true_vals[[j]])) next;
+      if (j == c("sig_sq")) {
+        out <- c(out, list_true_vals[[j]][d, 1, 1])
+        out <- c(out, list_true_vals[[j]][d, 1, 2])
+      } else if (j == "phi") {
+        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]][, 1]))
+        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]][, 1]))
+      } else if (j == "beta_z_lin") {
+        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
+        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+      } else if (j == "beta_u_lin") {
+        out <- c(out, unlist(t(list_true_vals[[j]][["A"]][[d]])))
+        out <- c(out, unlist(t(list_true_vals[[j]][["B"]][[d]])))
+      } else if (j == "vcm_u_lin") {
+        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
+        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+      }
+    }
+  }
+  out <- unname(out)
+  return(out)
+}
+get_true_vals_default <- function(list_true_vals, names_pars) {
   DD <- nrow(list_true_vals[["sig_sq"]])
   out <- numeric(0)
   for(j in names_pars) {
