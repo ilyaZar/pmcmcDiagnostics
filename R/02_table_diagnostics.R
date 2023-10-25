@@ -107,7 +107,7 @@ diagnostics_table <- function(num_par,
   summary_results[, id_ess] <- compute_ess(mcmc_sims_after,
                                            ESS_STANDARD,
                                            ESS_STAN)
-  if (!is.null(true_vals) && !is.na(true_vals)) {
+  if (!is.null(true_vals) && !all(is.na(true_vals))) {
     summary_results <- cbind(true_vals = true_vals, summary_results)
   }
   row.names(summary_results) <- unname(par_names)
@@ -344,7 +344,7 @@ verify_CIs <- function(CI, HPD) {
 #'   if that is not the case for both CI and HPD
 #' @export
 compute_significance_indicator <- function(int, true_vals) {
-  if (!is.null(true_vals) && !is.na(true_vals)) {
+  if (!is.null(true_vals) && !all(is.na(true_vals))) {
     ind_CI <-  (int[, 1] <= true_vals) & (int[, 2] >= true_vals)
   } else {
     ind_CI <- sign(int[, 1]) == sign(int[, 2]) & !(int[, 1] == int[, 2])
