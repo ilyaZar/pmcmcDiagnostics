@@ -14,7 +14,6 @@ get_update_rates <- function(states, settings_urs, settings_plots) {
     graphics::matplot(urs , type = "l")
   }
   if (settings_urs$ur_save) {
-    browser()
     current_plot_name <- file.path(settings_urs$ur_path,
                                    paste0("00_", settings_urs$ur_name, ".pdf"))
     grDevices::setEPS()
