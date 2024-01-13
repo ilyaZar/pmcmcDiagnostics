@@ -195,9 +195,10 @@ analyse_states_convergence <- function(model_output = NULL,
                                                            ur_save = FALSE,
                                                            ur_name = "",
                                                            ur_path = NULL)) {
-  states <- NULL
-  if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
-  if (is.null(states)) stop("Could not parse state values from pmcmc object.")
+  # states <- NULL
+  # if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
+  # if (is.null(states)) stop("Could not parse state values from pmcmc object.")
+  states <- model_output$x
   out_urs <- NULL
   if (settings_urs$ur_view || settings_urs$ur_save) {
     out_urs <- get_update_rates(states, settings_urs)
