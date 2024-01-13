@@ -7,7 +7,7 @@
 #'
 #' @return side effect function; plotting and/or saving
 #' @export
-get_update_rates <- function(states, settings_urs, settings_plots) {
+get_update_rates <- function(states, settings_urs) {
   urs <- compute_states_ur(trajectories = states, states_in_cols = TRUE)
   if (settings_urs$ur_view) {
     graphics::par(mfrow = c(1, 1))
