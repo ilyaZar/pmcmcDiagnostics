@@ -3,12 +3,12 @@
 #' If latent states are provided only!
 #'
 #' @param states latent state values
-#' @param settings_urs settings used for viewing/saving update rate plots
+#' @inheritParams analyse_states_convergence
 #'
 #' @return side effect function; plotting and/or saving
 #' @export
-get_update_rates <- function(states, settings_urs) {
-  urs <- compute_states_ur(trajectories = states, states_in_cols = TRUE)
+get_update_rates <- function(states, settings_urs, dim_list, WITH_CHECKS) {
+  urs <- compute_states_urs(trajectories = states, dim_list, WITH_CHECKS)
   if (settings_urs$ur_view) {
     graphics::par(mfrow = c(1, 1))
     graphics::matplot(urs, type = "l")
