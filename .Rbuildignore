@@ -3,3 +3,5 @@
 ^tests-own$
 ^pred_den_warnings\.cpp$
 ^TO-DO$
+.lintr
+.vscode
