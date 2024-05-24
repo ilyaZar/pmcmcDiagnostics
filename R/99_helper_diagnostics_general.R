@@ -8,73 +8,87 @@
 #'
 #' @param trajectories latent state trajectories (with ordering of mcmc draws
 #'   and time dimension specified under states_in_cols)
-#' @param states_in_cols logical with default TRUE; if TRUE, mcmc draws are
-#'   given in rows and time dimension (i.e. number of states) in columns
-
-#' @return a matrix of update rates of appropriate dimensions
+#' @inheritParams get_update_rates
+#'
+#' @return a matrix of update rates of appropriate dimensions: TT x NN
 #' @export
-compute_states_ur <- function(trajectories,
-                              states_in_cols = TRUE) {
-  dim_trajs <- length(dim(trajectories))
-  if (dim_trajs == 4) {
-    NN <- dim(trajectories)[4]
-  } else {
-    NN <- 1
-  }
-  if (states_in_cols) {
-    num_states <- dim(trajectories)[1]
-    # num_comps <-  dim(trajectories)[2]
-    num_draws <-  dim(trajectories)[3]
-  } else if (!states_in_cols) {
-    num_states <- dim(trajectories)[2]
-    # num_comps <-  dim(trajectories)[1]
-    num_draws <-  dim(trajectories)[3]
-    if (dim_trajs == 4) {
-      trajectories <- aperm(trajectories, c(2, 1, 3, 4))
-    } else {
-      trajectories <- aperm(trajectories, c(2, 1, 3))
-    }
-  }
-  urs_all <- urs_big(trajectories, NN, num_states, num_draws)
+compute_states_urs <- function(
+  trajectories,
+  dim_list = list("TT" = 1, "DD" = 2, "MM" = 3, "NN" = 4),
+  WITH_CHECKS = FALSE) {
+  dims_tkn <- dim(trajectories)
+  TT <- dims_tkn[dim_list[["TT"]]]
+  MM <- dims_tkn[dim_list[["MM"]]]
+  NN <- dims_tkn[dim_list[["NN"]]]
+  trajectories <- aperm(trajectories, c(dim_list["TT"],
+                                        dim_list["DD"],
+                                        dim_list["MM"],
+                                        dim_list["NN"]))
+  urs_all <- urs_big(trajectories, TT, NN, MM, WITH_CHECKS)
   return(urs_all)
 }
-adjust_trajectories <- function(traj_mat, num_draws) {
-  check_components <- matrix(FALSE, nrow = num_draws,
-                             ncol = ncol(traj_mat))
-  for (mm in 1:num_draws) {
-    check_components[mm, ] <- apply(traj_mat[, , mm, drop = FALSE], 2,
-                                    function(x){length(unique(x)) == 1})
-  }
-  keep_cmp <- which(!apply(check_components, 2, function(x){all(x == TRUE)}))
-  if (length(keep_cmp) == 0) stop("No variation in states; impoosible ...")
-  traj_mat[, keep_cmp, ]
-}
-urs_big <- function(trajectories, NN, num_states, num_draws) {
-  urs_all   <- matrix(0, nrow = num_states, ncol = NN)
-  for (n in 1:NN) {
-    tmp_traj  <- adjust_trajectories(trajectories[ , , , n],
-                                     num_draws)
-    num_comps <- dim(tmp_traj)[2]
-    urs_per_n <- matrix(0, nrow = num_states, ncol = num_comps)
-    for (d in 1:num_comps) {
-      urs_per_n[, d] <- urs_small(tmp_traj[ , d, ], num_draws)
-    }
-    unique_states <- apply(urs_per_n, MARGIN = 1,
-                           function(x) {Reduce(equal_values, x)})
-    test_computations <- any(unique_states != urs_per_n[, 1])
-    if (test_computations) {
-      stop("Numerical problems during update rate computations!")
+adjust_trajectories <- function(traj_mat) {
+  ID_ZERO_CMPNTS_MAT <- apply(traj_mat, c(1, 2), check_zero_component_traj)
+  stopifnot(`FAILED.` = check_zero_cmpnt_mat_fail(ID_ZERO_CMPNTS_MAT))
+  id_tkn <- 1
+  while (id_tkn <= nrow(ID_ZERO_CMPNTS_MAT)) {
+    ID_ZERO_CMPNTS <- ID_ZERO_CMPNTS_MAT[id_tkn, ]
+    if (all(ID_ZERO_CMPNTS)) {
+      id_tkn <- id_tkn + 1
     } else {
-      urs_all[, n] <- unique_states
+      break
+    }
+  }
+  if (id_tkn == nrow(ID_ZERO_CMPNTS_MAT)) stop("No variation in states ...")
+  traj_mat[, !ID_ZERO_CMPNTS, ]
+}
+check_zero_cmpnt_mat_fail <- function(x) {
+  rws       <- rowSums(x)
+  rws       <- setdiff(rws, ncol(x))
+  rws_unq   <- unique(rws)
+  CHECK_LEN <- length(rws_unq) == 1
+  if (CHECK_LEN) return(TRUE)
+  FALSE
+}
+check_zero_component_traj <- function(x) {
+  if (length(unique(x)) == 1) return(TRUE)
+  return(FALSE)
+}
+urs_big <- function(trajectories, TT, NN, MM, WITH_CHECK = FALSE) {
+  urs_all   <- matrix(0, nrow = TT, ncol = NN)
+  for (n in 1:NN) {
+    tmp_traj  <- adjust_trajectories(trajectories[, , , n])
+    if (WITH_CHECK) {
+      DD <- ncol(tmp_traj)
+      urs_all[, n] <- compute_urs_with_checks(tmp_traj, TT, DD, MM)
+    } else {
+      urs_all[, n] <- urs_small(tmp_traj[, 1, ], MM)
     }
   }
   return(urs_all)
 }
 urs_small <- function(traj_mat, num_draws) {
-  num_unique_states <- apply(traj_mat,
-                             MARGIN = 1,
-                             function(x) {length(unique(x))/ num_draws},
-                             simplify = TRUE)
+  apply(traj_mat, MARGIN = 1, compute_frac_unq, num_draws, simplify = TRUE)
+}
+compute_frac_unq <- function(x, num_draws) {
+  length(unique(x)) / num_draws
+}
+compute_urs_with_checks <- function(x, TT, DD, MM) {
+  urs_per_n <- matrix(0, nrow = TT, ncol = DD)
+  for (dd in seq_len(DD)) {
+    urs_per_n[, dd] <- urs_small(x[, dd, ], MM)
+  }
+  unique_states <- apply(urs_per_n,
+                         MARGIN = 1,
+                         function(x) {
+                           Reduce(equal_values, x)
+                         })
+  CHECK_COMPUTATIONS <- any(unique_states != urs_per_n[, 1])
+  if (CHECK_COMPUTATIONS) {
+    browser()
+    stop("Numerical problems during update rate computations!")
+  }
+  return(unique_states)
 }
 #' To be used within \code{Reduce()}-constructs to check if values are equal
 #'
