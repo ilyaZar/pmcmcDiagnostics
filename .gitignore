@@ -23,3 +23,5 @@ TO-DO
 *.json
 *.csv
 tests-own
+.vscode
+.lintr
