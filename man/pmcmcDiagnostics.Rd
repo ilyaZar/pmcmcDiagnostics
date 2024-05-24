@@ -2,6 +2,7 @@
 % Please edit documentation in R/pmcmcDiagnostics.R
 \docType{package}
 \name{pmcmcDiagnostics}
+\alias{-package}
 \alias{pmcmcDiagnostics}
 \title{The bla}
 \description{

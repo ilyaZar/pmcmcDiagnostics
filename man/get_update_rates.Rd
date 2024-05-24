@@ -4,12 +4,31 @@
 \alias{get_update_rates}
 \title{Generates update rate plots}
 \usage{
-get_update_rates(states, settings_urs, settings_plots)
+get_update_rates(states, settings_urs, dim_list, WITH_CHECKS)
 }
 \arguments{
 \item{states}{latent state values}
 
-\item{settings_urs}{settings used for viewing/saving update rate plots}
+\item{settings_urs}{a list of four:
+\itemize{
+\item{\code{ur_view: }}{logical; if \code{TRUE} are returned for viewing
+(RStudio pane)}
+\item{\code{ur_save: }}{logical; if \code{TRUE} update rates are saved}
+\item{\code{ur_name: }}{if \code{ur_save == TRUE}, specifies name of the
+update rate plot}
+\item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
+update rate plot}
+}}
+
+\item{dim_list}{named list of dimensions; each element name corresponds to
+an index in the array \code{trajectories}; i.e. if this list has the entry
+\code{list("NN" = 4, "MM" = 3, "DD" = 2, "TT" = 1)} then 4 is the index
+for the cross section, 3 the index for the number of (P)MCMC draws, 3 the
+index for the number of components and 1 the index for the time dimension}
+
+\item{WITH_CHECKS}{logical; if \code{TRUE}, update rates are computed for
+each multivariate component of the state process and their equivalence is
+checked}
 }
 \value{
 side effect function; plotting and/or saving
