@@ -186,22 +186,37 @@ analyse_mcmc_convergence2 <- function(model_output = NULL,
 #'     \item{\code{ur_path: }}{if \code{ur_save == TRUE}, specifies path of the
 #'     update rate plot}
 #'   }
+#' @param dim_list named list of dimensions; each element name corresponds to
+#'   an index in the array \code{trajectories}; i.e. if this list has the entry
+#'   \code{list("NN" = 4, "MM" = 3, "DD" = 2, "TT" = 1)} then 4 is the index
+#'   for the cross section, 3 the index for the number of (P)MCMC draws, 3 the
+#'   index for the number of components and 1 the index for the time dimension
+#' @param WITH_CHECKS logical; if \code{TRUE}, update rates are computed for
+#'   each multivariate component of the state process and their equivalence is
+#'   checked
 #'
 #' @return the update rates, and possibly side effects such as plots saved in a
 #'   directory passed via `settings_urs$ur_path`
 #' @export
-analyse_states_convergence <- function(model_output = NULL,
-                                       settings_urs = list(ur_view = FALSE,
-                                                           ur_save = FALSE,
-                                                           ur_name = "",
-                                                           ur_path = NULL)) {
+analyse_states_convergence <- function(
+  model_output = NULL,
+  settings_urs = list(ur_view = FALSE,
+                      ur_save = FALSE,
+                      ur_name = "",
+                      ur_path = NULL),
+  dim_list = list("TT" = 1, "DD" = 2, "MM" = 3, "NN" = 4),
+  WITH_CHECKS = FALSE) {
   # states <- NULL
   # if (inherits(x = model_output, what = "pmcmc")) states <- model_output$x
   # if (is.null(states)) stop("Could not parse state values from pmcmc object.")
   states <- model_output$x
   out_urs <- NULL
   if (settings_urs$ur_view || settings_urs$ur_save) {
-    out_urs <- get_update_rates(states, settings_urs)
+    out_urs <- get_update_rates(
+      states,
+      settings_urs,
+      dim_list,
+      WITH_CHECKS)
   }
   if (is.null(out_urs)) warning(paste0("No update rates computed, ",
                                        "nothing to return ..."))
