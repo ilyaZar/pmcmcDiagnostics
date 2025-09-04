@@ -203,3 +203,26 @@ get_true_vals_default <- function(list_true_vals, names_pars) {
   out <- unname(out)
   return(out)
 }
+progress_any <- function(iter,
+                         iter_max,
+                         settings = list(digits = 0,
+                                         repeat_every = 10),
+                         msg = NULL) {
+  percentage_progress <- iter / iter_max * 100
+
+  chunck_to_print  <- floor(iter_max / settings$repeat_every)
+  repeat_every_seq <- seq(from = chunck_to_print,
+                          to = iter_max,
+                          by = chunck_to_print)
+  check_print_progress <- iter %in% repeat_every_seq
+  if (check_print_progress && is.null(msg)) {
+    cat(crayon::green("Progress: "),
+        crayon::yellow(
+          paste0(round(percentage_progress, digits = settings$digits), "%.\n")))
+  } else if (check_print_progress && !is.null(msg)) {
+    cat(crayon::green("Progress - "),
+        crayon::green(paste0(msg, ": ")),
+        crayon::yellow(
+          paste0(round(percentage_progress, digits = settings$digits), "%.\n")))
+  }
+}

@@ -308,7 +308,9 @@ generate_plot_all <- function(mcmc_sims,
                      onefile = TRUE)
     }
 
-    for (i in seq_len(num_par)) {
+    ITER_MAX <- num_par
+    msg_progress <- paste0("Saving plots to big (.", type_output_device, ") file: ")
+    for (i in  seq_len(num_par)) {
       generate_plot2(mcmc_sims         = mcmc_sims,
                      mcmc_sims_after   = mcmc_sims_after,
                      burn              = burn,
@@ -318,10 +320,8 @@ generate_plot_all <- function(mcmc_sims,
                      true_vals         = true_vals,
                      posterior_means   = posterior_means,
                      plot_num          = i)
-      message("Saving plots to big (.", type_output_device, ") file: ",
-              i, " out of ", num_par, "...")
+      progress_any(i, ITER_MAX, msg = msg_progress)
     }
-
     grDevices::dev.off()
   }
 }
