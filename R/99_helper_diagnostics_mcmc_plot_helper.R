@@ -158,30 +158,38 @@ generate_ggplot2 <- function(mcmc_sims_df,
 
   return(list(hist_plot, trace_plot_full, acf_plot, trace_plot_burn))
 }
-generate_ggplot2_all <- function(mcmc_sims_df,
-                                 mcmc_sims_df_after,
-                                 burn,
-                                 thin,
-                                 num_mcmc,
-                                 par_names,
-                                 true_vals,
-                                 posterior_means,
-                                 settings_plots,
-                                 lab_names) {
+generate_ggplot2_all <- function(
+    mcmc_sims_df,
+    mcmc_sims_df_after,
+    burn,
+    thin,
+    num_mcmc,
+    par_names,
+    true_vals,
+    posterior_means,
+    settings_plots,
+    lab_names,
+    type_output_device = "pdf" # default, can be "eps"
+) {
   num_par <- length(par_names)
   list_of_plots <- vector("list", num_par)
-  for (i in 1:num_par) {
+
+  for (i in seq_len(num_par)) {
     ln_tmp <- grid::textGrob(lab_names[i],
                              gp = grid::gpar(fontsize = 20, font = 3))
-    plot_returned <- generate_ggplot2(mcmc_sims_df = mcmc_sims_df,
-                                      mcmc_sims_df_after=mcmc_sims_df_after,
-                                      burn = burn,
-                                      thin = thin,
-                                      num_mcmc = num_mcmc,
-                                      par_names = par_names,
-                                      true_vals = true_vals,
-                                      posterior_means = posterior_means,
-                                      plot_num = i)
+
+    plot_returned <- generate_ggplot2(
+      mcmc_sims_df        = mcmc_sims_df,
+      mcmc_sims_df_after  = mcmc_sims_df_after,
+      burn                = burn,
+      thin                = thin,
+      num_mcmc            = num_mcmc,
+      par_names           = par_names,
+      true_vals           = true_vals,
+      posterior_means     = posterior_means,
+      plot_num            = i
+    )
+
     if (settings_plots$plot_view) {
       gridExtra::grid.arrange(plot_returned[[1]],
                               plot_returned[[2]],
@@ -190,25 +198,36 @@ generate_ggplot2_all <- function(mcmc_sims_df,
                               nrow = 2,
                               top = ln_tmp)
     }
+
     if (settings_plots$plot_save) {
-      current_plot_name <- get_plot_name(settings_plots,
-                                         par_names[i],
-                                         all = FALSE)
-      list_of_plots[[i]] <- gridExtra::arrangeGrob(plot_returned[[1]],
-                                                   plot_returned[[2]],
-                                                   plot_returned[[3]],
-                                                   plot_returned[[4]],
-                                                   nrow = 2,
-                                                   top = ln_tmp)
-      ggplot2::ggsave(filename = basename(current_plot_name),
-                      plot = list_of_plots[[i]],
-                      path = dirname(current_plot_name),
-                      device = "eps",
-                      width = 18,
-                      height = 10.5,
-                      units = "cm")
-      print(paste("Saved plots in: ", current_plot_name))
+      # ensure file extension matches device
+      ext <- ifelse(type_output_device == "eps", "eps", "pdf")
+      current_plot_name <- paste0(
+        tools::file_path_sans_ext(
+          get_plot_name(settings_plots, par_names[i], all = FALSE)
+        ),
+        ".", ext
+      )
+
+      list_of_plots[[i]] <- gridExtra::arrangeGrob(
+        plot_returned[[1]], plot_returned[[2]],
+        plot_returned[[3]], plot_returned[[4]],
+        nrow = 2, top = ln_tmp
+      )
+
+      ggplot2::ggsave(
+        filename = basename(current_plot_name),
+        plot     = list_of_plots[[i]],
+        path     = dirname(current_plot_name),
+        device   = type_output_device,
+        width    = 18,
+        height   = 10.5,
+        units    = "cm"
+      )
+
+      message("Saved plots in: ", current_plot_name)
     }
+
     if (settings_plots$plot_save_all) {
       warning("Feature not yet implemented.")
     }
@@ -223,76 +242,99 @@ generate_plot_all <- function(mcmc_sims,
                               true_vals,
                               posterior_means,
                               settings_plots,
-                              lab_names) {
-  num_par   <- length(par_names)
-  if (settings_plots$plot_view) {
-    for (i in 1:num_par) {
-      generate_plot2(mcmc_sims = mcmc_sims,
-                     mcmc_sims_after = mcmc_sims_after,
-                     burn = burn,
-                     num_mcmc = num_mcmc,
-                     par_names = par_names,
-                     par_names_plots = lab_names,
-                     true_vals = true_vals,
-                     posterior_means = posterior_means,
-                     plot_num = i)
+                              lab_names,
+                              type_output_device = "pdf" # default "pdf", can be "eps"
+) {
+  num_par <- length(par_names)
 
+  if (settings_plots$plot_view) {
+    for (i in seq_len(num_par)) {
+      generate_plot2(mcmc_sims         = mcmc_sims,
+                     mcmc_sims_after   = mcmc_sims_after,
+                     burn              = burn,
+                     num_mcmc          = num_mcmc,
+                     par_names         = par_names,
+                     par_names_plots   = lab_names,
+                     true_vals         = true_vals,
+                     posterior_means   = posterior_means,
+                     plot_num          = i)
     }
   }
+
   if (settings_plots$plot_save) {
-    for (i in 1:num_par) {
+    for (i in seq_len(num_par)) {
       current_plot_name <- get_plot_name(settings_plots,
-                                         par_names[i],
-                                         all = FALSE)
-      grDevices::setEPS()
-      grDevices::postscript(current_plot_name, width = 18,
-                            height = 10.5)
-      generate_plot2(mcmc_sims = mcmc_sims,
-                     mcmc_sims_after = mcmc_sims_after,
-                     burn = burn,
-                     num_mcmc = num_mcmc,
-                     par_names = par_names,
-                     par_names_plots = lab_names,
-                     true_vals = true_vals,
-                     posterior_means = posterior_means,
-                     plot_num = i)
+                                         sub_name = par_names[i],
+                                         all = FALSE,
+                                         type_output_device = type_output_device)
+
+      # open device based on type
+      if (type_output_device == "eps") {
+        grDevices::setEPS()
+        grDevices::postscript(current_plot_name, width = 18, height = 10.5)
+      } else {
+        grDevices::pdf(current_plot_name, width = 18, height = 10.5)
+      }
+
+      generate_plot2(mcmc_sims         = mcmc_sims,
+                     mcmc_sims_after   = mcmc_sims_after,
+                     burn              = burn,
+                     num_mcmc          = num_mcmc,
+                     par_names         = par_names,
+                     par_names_plots   = lab_names,
+                     true_vals         = true_vals,
+                     posterior_means   = posterior_means,
+                     plot_num          = i)
+
       grDevices::dev.off()
-      print(paste("Saved plots in: ", current_plot_name))
+      message("Saved plots in: ", current_plot_name)
     }
   }
+
   if (settings_plots$plot_save_all) {
-    current_plot_name_all <- get_plot_name(settings_plots, all = TRUE)
-    grDevices::setEPS()
-    grDevices::postscript(current_plot_name_all,
-                          width = 18, height = 10.5,
-                          onefile = TRUE)
-    for (i in 1:num_par) {
-      generate_plot2(mcmc_sims = mcmc_sims,
-                     mcmc_sims_after = mcmc_sims_after,
-                     burn = burn,
-                     num_mcmc = num_mcmc,
-                     par_names = par_names,
-                     par_names_plots = lab_names,
-                     true_vals = true_vals,
-                     posterior_means = posterior_means,
-                     plot_num = i)
-      print(paste("Saving plots to big (.eps) file: ",
-                  i, " out of ", num_par, "..."))
+    current_plot_name_all <- get_plot_name(settings_plots,
+                                           sub_name = NULL,
+                                           all = TRUE,
+                                           type_output_device = type_output_device)
+
+    if (type_output_device == "eps") {
+      grDevices::setEPS()
+      grDevices::postscript(current_plot_name_all,
+                            width = 18, height = 10.5,
+                            onefile = TRUE)
+    } else {
+      grDevices::pdf(current_plot_name_all,
+                     width = 18, height = 10.5,
+                     onefile = TRUE)
     }
+
+    for (i in seq_len(num_par)) {
+      generate_plot2(mcmc_sims         = mcmc_sims,
+                     mcmc_sims_after   = mcmc_sims_after,
+                     burn              = burn,
+                     num_mcmc          = num_mcmc,
+                     par_names         = par_names,
+                     par_names_plots   = lab_names,
+                     true_vals         = true_vals,
+                     posterior_means   = posterior_means,
+                     plot_num          = i)
+      message("Saving plots to big (.", type_output_device, ") file: ",
+              i, " out of ", num_par, "...")
+    }
+
     grDevices::dev.off()
   }
 }
-get_plot_name <- function(settings, sub_name, all) {
+
+get_plot_name <- function(settings, sub_name, all,
+                          type_output_device = "pdf") {
+  ext <- ifelse(type_output_device == "eps", "eps", "pdf")
+
   if (all) {
     file.path(settings$plot_path,
-              paste(settings$plot_name,
-                    ".eps",
-                    sep = ""))
+              paste0(settings$plot_name, ".", ext))
   } else {
     file.path(settings$plot_path,
-              paste(sub_name,
-                    ".eps",
-                    sep = ""))
+              paste0(sub_name, ".", ext))
   }
-
 }

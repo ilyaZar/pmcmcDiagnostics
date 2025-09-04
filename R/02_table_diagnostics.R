@@ -63,7 +63,8 @@ diagnostics_table <- function(num_par,
     names(summary_results)[id_qs] <- paste0(q_probs * 100, "%")
   }
   if (ESS_STANDARD && !ESS_STAN) {
-    summary_results = cbind(summary_results, ess = numeric(num_par))
+    summary_results = cbind(summary_results, ess_mcmcse = numeric(num_par))
+    summary_results = cbind(summary_results, ess_coda = numeric(num_par))
   }
   if (ESS_STAN && !ESS_STANDARD) {
     summary_results = cbind(summary_results, ess_bulk = numeric(num_par))
@@ -85,7 +86,8 @@ diagnostics_table <- function(num_par,
     # respective posterior quantiles are reliable.
   }
   if (ESS_STANDARD && ESS_STAN) {
-    summary_results = cbind(summary_results, ess = numeric(num_par))
+    summary_results = cbind(summary_results, ess_mcmcse = numeric(num_par))
+    summary_results = cbind(summary_results, ess_coda = numeric(num_par))
     summary_results = cbind(summary_results, ess_bulk = numeric(num_par))
     summary_results = cbind(summary_results, ess_tail = numeric(num_par))
   }
@@ -203,11 +205,18 @@ compute_ess <- function(mcmc_sims_after, ESS_STANDARD, ESS_STAN) {
   if (ESS_STANDARD && !ESS_STAN) {
     ess <- numeric(num_pars)
     for (i in 1:num_pars) {
-      ess[i] <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
+      mcmc_sim_tkn <- mcmc_sims_after[, i]
+      ess_std1[i] <- tryCatch(mcmcse::ess(mcmc_sim_tkn),
+                         error = function(err) NA_real_)
+      ess_std2[i] <- tryCatch(coda::effectiveSize(coda::mcmc(mcmc_sim_tkn)),
                          error = function(err) NA_real_)
     }
-    ess <- matrix(round(ess, digits = 0), ncol = 1)
-    colnames(ess) <- "ess"
+    ess <- matrix(
+      cbind(round(ess_std1, digits = 0),
+            round(ess_std2, digits = 0)),
+            ncol = 2
+    )
+    colnames(ess) <- c("ess_mcmcse", "ess_coda")
   } else if (ESS_STAN && !ESS_STANDARD) {
     ess_bulk <- numeric(num_pars)
     ess_tail <- numeric(num_pars)
@@ -221,21 +230,34 @@ compute_ess <- function(mcmc_sims_after, ESS_STANDARD, ESS_STAN) {
     ess_tail <- round(ess_bulk, digits = 0)
     ess <- cbind(ess_bulk = ess_bulk, ess_tail = ess_tail)
   } else if (ESS_STAN && ESS_STANDARD) {
-    ess_stnd <- numeric(num_pars)
+    ess_std1 <- numeric(num_pars)
+    ess_std2 <- numeric(num_pars)
     ess_bulk <- numeric(num_pars)
     ess_tail <- numeric(num_pars)
     for (i in 1:num_pars) {
-      ess_bulk[i] <- tryCatch(rstan::ess_bulk(mcmc_sims_after[, i]),
-                              error = function(err) NA_real_)
-      ess_tail[i] <- tryCatch(rstan::ess_tail(mcmc_sims_after[, i]),
-                              error = function(err) NA_real_)
-      ess_stnd[i] <- tryCatch(mcmcse::ess(mcmc_sims_after[, i]),
-                              error = function(err) NA_real_)
+      mcmc_sim_tkn <- mcmc_sims_after[, i]
+      if (all(mcmc_sim_tkn == 0)) {
+        ess_bulk[i] <- NA_real_
+        ess_tail[i] <- NA_real_
+        ess_std1[i] <- NA_real_
+        ess_std2[i] <- NA_real_
+      } else {
+        ess_bulk[i] <- tryCatch(rstan::ess_bulk(mcmc_sim_tkn),
+                                error = function(err) NA_real_)
+        ess_tail[i] <- tryCatch(rstan::ess_tail(mcmc_sim_tkn),
+                                error = function(err) NA_real_)
+        ess_std1[i] <- tryCatch(mcmcse::ess(mcmc_sim_tkn),
+                                error = function(err) NA_real_)
+        ess_std2[i] <- tryCatch(coda::effectiveSize(coda::mcmc(mcmc_sim_tkn)),
+                                error = function(err) NA_real_)
+      }
     }
-    ess_stnd <- round(ess_stnd, digits = 0)
+    ess_std1 <- round(ess_std1, digits = 0)
+    ess_std2 <- round(ess_std2, digits = 0)
     ess_bulk <- round(ess_bulk, digits = 0)
     ess_tail <- round(ess_tail, digits = 0)
-    ess <- cbind(ess_stnd = ess_stnd,
+    ess <- cbind(ess_std1 = ess_std1,
+                 ess_std2 = ess_std2,
                  ess_bulk = ess_bulk,
                  ess_tail = ess_tail)
   }

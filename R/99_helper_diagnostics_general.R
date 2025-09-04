@@ -65,6 +65,8 @@ urs_big <- function(trajectories, TT, NN, MM, WITH_CHECK = FALSE) {
       urs_all[, n] <- urs_small(tmp_traj[, 1, ], MM)
     }
   }
+  rownames(urs_all) <- paste0("tt_", seq_len(TT))
+  colnames(urs_all) <- paste0("nn_", seq_len(NN))
   return(urs_all)
 }
 urs_small <- function(traj_mat, num_draws) {
@@ -85,7 +87,6 @@ compute_urs_with_checks <- function(x, TT, DD, MM) {
                          })
   CHECK_COMPUTATIONS <- any(unique_states != urs_per_n[, 1])
   if (CHECK_COMPUTATIONS) {
-    browser()
     stop("Numerical problems during update rate computations!")
   }
   return(unique_states)
@@ -136,6 +137,7 @@ get_true_vals <- function(list_true_vals) {
   CHECK_DIST_SPECIAL <- grepl("Gen", class(list_true_vals)[1])
   if (CHECK_DIST_SPECIAL) {
     out <- get_true_vals_special(list_true_vals, names_pars)
+    # out <- get_true_vals_default(list_true_vals, names_pars)
   } else {
     out <- get_true_vals_default(list_true_vals, names_pars)
   }
@@ -148,21 +150,32 @@ get_true_vals_special <- function(list_true_vals, names_pars) {
     for (d in 1:DD) {
       if (is.null(list_true_vals[[j]])) next;
       if (j == c("sig_sq")) {
-        out <- c(out, list_true_vals[[j]][d, 1, 1])
-        out <- c(out, list_true_vals[[j]][d, 1, 2])
+        out <- c(out, unique(list_true_vals[[j]][d, , ]))
       } else if (j == "phi") {
-        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]][, 1]))
-        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]][, 1]))
+        out <- c(out, unlist(list_true_vals[[j]][[d]][, 1]))
       } else if (j == "beta_z_lin") {
-        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
-        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+        out <- c(out, unlist(list_true_vals[[j]][[d]]))
       } else if (j == "beta_u_lin") {
-        out <- c(out, unlist(t(list_true_vals[[j]][["A"]][[d]])))
-        out <- c(out, unlist(t(list_true_vals[[j]][["B"]][[d]])))
+        out <- c(out, unlist(t(list_true_vals[[j]][[d]])))
       } else if (j == "vcm_u_lin") {
-        out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
-        out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+        out <- c(out, unlist(list_true_vals[[j]][[d]]))
       }
+      # if (j == c("sig_sq")) {
+      #   out <- c(out, list_true_vals[[j]][d, 1, 1])
+      #   out <- c(out, list_true_vals[[j]][d, 1, 2])
+      # } else if (j == "phi") {
+      #   out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]][, 1]))
+      #   out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]][, 1]))
+      # } else if (j == "beta_z_lin") {
+      #   out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
+      #   out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+      # } else if (j == "beta_u_lin") {
+      #   out <- c(out, unlist(t(list_true_vals[[j]][["A"]][[d]])))
+      #   out <- c(out, unlist(t(list_true_vals[[j]][["B"]][[d]])))
+      # } else if (j == "vcm_u_lin") {
+      #   out <- c(out, unlist(list_true_vals[[j]][["A"]][[d]]))
+      #   out <- c(out, unlist(list_true_vals[[j]][["B"]][[d]]))
+      # }
     }
   }
   out <- unname(out)

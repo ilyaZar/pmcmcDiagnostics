@@ -4,7 +4,13 @@
 \alias{get_update_rates}
 \title{Generates update rate plots}
 \usage{
-get_update_rates(states, settings_urs, dim_list, WITH_CHECKS)
+get_update_rates(
+  states,
+  settings_urs,
+  dim_list,
+  WITH_CHECKS,
+  type_output_device = "pdf"
+)
 }
 \arguments{
 \item{states}{latent state values}
@@ -29,6 +35,8 @@ index for the number of components and 1 the index for the time dimension}
 \item{WITH_CHECKS}{logical; if \code{TRUE}, update rates are computed for
 each multivariate component of the state process and their equivalence is
 checked}
+
+\item{type_output_device}{output device type ("pdf" \link{default} or "eps")}
 }
 \value{
 side effect function; plotting and/or saving

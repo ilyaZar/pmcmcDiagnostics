@@ -220,5 +220,78 @@ analyse_states_convergence <- function(
   }
   if (is.null(out_urs)) warning(paste0("No update rates computed, ",
                                        "nothing to return ..."))
+  out_urs <- list(update_rates_each_nn = out_urs,
+                  update_rates_nn_averaged = rowMeans(out_urs))
   return(out_urs)
+}
+#' Generate averages update rates as a plot and output.
+#'
+#' Also gives a summary of the average update rates.
+#'
+#' @param x_urs a matrix of update rates as returned e.g. via
+#'   [analyse_states_convergence()]
+#'
+#' @return a list with the summary of the average update rates and the average
+#'   update rates computed
+#' @export
+analyse_average_urs <- function(x_urs) {
+  x_urs_tkn <- x_urs$update_rates_each_nn
+  TT <- nrow(x_urs_tkn)
+  x_urs_tkn[1, ] <- min(rowMeans(x_urs_tkn[2:TT, ]))
+  avg_ur <- rowMeans(x_urs_tkn)
+  plot(avg_ur, type = "l", xlab = "Iterations", ylab = "Average update rate",
+     main = "Average update rate over all components")
+  print(summary(avg_ur))
+  return(list(summary(avg_ur), avg_ur))
+}
+#' Plot State Trajectory with Quantiles and True Values
+#'
+#' This function plots a state trajectory over time, including the mean trajectory,
+#' 95% credible intervals (quantiles), and the true state values.
+#'
+#' @param out_all A list containing an array `x`, where `x` has dimensions
+#' `(T, D, Samples, N)`, representing sampled trajectories.
+#' @param pth_states_true A string specifying the file path to the true states
+#' stored as an RDS file.
+#' @param NN An integer specifying the cross-section (e.g., subject or group index). Default is 1.
+#' @param DD An integer specifying the dimension (e.g., state variable index). Default is 1.
+#' @param TT_seq An integer specifying the time periods to plot; if `NULL`, then
+#'   full time series length is plotted
+#'
+#' @return A base R plot showing the mean trajectory (solid blue), 95% quantiles
+#' (dashed blue), and true values (solid green).
+#'
+#' @examples
+#' \dontrun{
+#' plot_state_trajectory(out_all, "path/to/true_states.rds", NN = 1, DD = 1)
+#' }
+#'
+#' @export
+plot_state_trajectory <- function(out_all, pth_states_true, NN = 1, DD = 1, TT_seq = NULL) {
+  if (is.null(TT_seq)) TT_seq <- seq_len(dim(out_all$x)[1])
+  # Extract cross section and dimension
+  out_x_tkn <- out_all$x[TT_seq, DD, , NN]
+
+  # Initialize matrix to store quantiles, mean, and true values
+  mat_test <- matrix(0, nrow = dim(out_x_tkn)[1], ncol = 4)
+  mat_test[, c(1, 3)] <- t(apply(out_x_tkn, 1, quantile, probs = c(0.025, 0.975)))
+  mat_test[, 2] <- apply(out_x_tkn, 1, mean)
+
+  # Load true values
+  x_true <- readRDS(pth_states_true)
+  mat_test[, 4] <- x_true[TT_seq, DD, NN]
+
+  # Define line styles
+  line_types <- c(2, 1, 2, 1)  # Dashed for quantiles, solid for mean and true values
+  line_colors <- c("blue", "blue", "blue", "green")  # True values in green
+  line_widths <- c(1, 2, 1, 2)  # Thicker mean and true values
+
+  # Plot
+  matplot(seq_len(dim(out_x_tkn)[1]), mat_test, type = "l", lty = line_types,
+          col = line_colors, lwd = line_widths, xlab = "T", ylab = "State trajectory",
+          main = "Trajectory with Quantiles and True Values")
+
+  # Add legend
+  legend("topright", legend = c("Mean", "Quantiles", "True Values"),
+         col = c("blue", "blue", "green"), lty = c(1, 2, 1), lwd = c(2, 1, 2))
 }
